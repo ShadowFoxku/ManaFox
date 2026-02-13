@@ -24,15 +24,10 @@
     <ProjectReference Include="..\ManaFox.Databases.TSQL\ManaFox.Databases.TSQL.csproj" />
   </ItemGroup>
 
+
   <ItemGroup>
-    <None Update="assets\manafox.png">
-      <PackagePath></PackagePath>
-      <Pack>true</Pack>
-    </None>
-    <None Update="README.md">
-      <PackagePath></PackagePath>
-      <Pack>true</Pack>
-    </None>
+	<None Update="README.md" Pack="true" PackagePath="" />
+	<None Include="assets/manafox.png" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
