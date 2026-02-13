@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<PackageProjectUrl>https://github.com/ShadowFoxku/ManaFox</PackageProjectUrl>
+	<Description>Database wrapper for standard read/write/execute operations on a TSQL (Microsoft.Data.SqlClient) connection</Description>
+	<RepositoryType>git</RepositoryType>
+	<Authors>Roku</Authors>
+	<Company>ManaFox</Company>
+	<PackageId>ManaFox.Databases.TSQL</PackageId>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>manafox.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ManaFox.Core\ManaFox.Core.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<None Update="assets\manafox.png">
+		  <PackagePath></PackagePath>
+		  <Pack>true</Pack>
+		</None>
+		<None Update="README.md" Pack="true" PackagePath="" />
+	</ItemGroup>
+</Project>

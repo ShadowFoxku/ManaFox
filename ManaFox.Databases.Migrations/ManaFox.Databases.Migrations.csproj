@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<PackageProjectUrl>https://github.com/ShadowFoxku/ManaFox</PackageProjectUrl>
+	<Description>Database migrator leveraging DBup to ensure schemas are kept up to date</Description>
+	<RepositoryType>git</RepositoryType>
+	<Authors>Roku</Authors>
+	<Company>ManaFox</Company>
+	<PackageId>ManaFox.Databases.Migrations</PackageId>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>manafox.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="dbup-core" Version="6.0.15" />
+    <PackageReference Include="dbup-sqlserver" Version="6.0.16" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ManaFox.Core\ManaFox.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<None Update="README.md" Pack="true" PackagePath="" />
+	<None Include="assets/manafox.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>

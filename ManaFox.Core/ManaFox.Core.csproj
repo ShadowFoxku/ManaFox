@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/ShadowFoxku/ManaFox</PackageProjectUrl>
+    <Description>Core primatives for ManaFox libraries</Description>
+    <RepositoryType>git</RepositoryType>
+	<Authors>Roku</Authors>
+	<Company>ManaFox</Company>
+	<PackageId>ManaFox.Core</PackageId>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>manafox.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="README.md" Pack="true" PackagePath="" />
+	<None Include="assets/manafox.png" Pack="true" PackagePath="" />
+  </ItemGroup>
+
+</Project>

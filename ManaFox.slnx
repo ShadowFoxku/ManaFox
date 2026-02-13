@@ -1,0 +1,8 @@
+<Solution>
+  <Project Path="ManaFox.Core/ManaFox.Core.csproj" />
+  <Project Path="ManaFox.Databases.Migrations/ManaFox.Databases.Migrations.csproj" Id="472a3220-bf84-4169-9618-e8bf3eb8a399" />
+  <Project Path="ManaFox.Databases.TSQL.Extensions/ManaFox.Databases.TSQL.Extensions.csproj" Id="8d8d23fe-66c0-4cde-b501-214cd66e5e29" />
+  <Project Path="ManaFox.Databases.TSQL/ManaFox.Databases.TSQL.csproj" Id="f111dec8-dfbb-4647-8812-ed7128ccfc92" />
+  <Project Path="ManaFox.Extensions/ManaFox.Extensions.csproj" Id="5d76922e-3f7e-45df-a4d3-05de886d0473" />
+  <Project Path="ManaFox.Tests/ManaFox.Tests.csproj" Id="0f31b4a5-b02a-4ddf-bb98-b01431ecfd1b" />
+</Solution>
