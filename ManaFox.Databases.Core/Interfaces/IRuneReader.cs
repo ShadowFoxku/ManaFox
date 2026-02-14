@@ -17,6 +17,11 @@ namespace ManaFox.Databases.Core.Interfaces
         Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
         Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new();
 
+        Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new();
+        Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new();
+        Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
+        Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new();
+
         Task CloseAsync();
     }
 }

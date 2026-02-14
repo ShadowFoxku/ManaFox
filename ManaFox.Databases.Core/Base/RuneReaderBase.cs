@@ -11,6 +11,7 @@ namespace ManaFox.Databases.Core.Base
         public abstract Task<int> ExecuteAsync(string commandText, CommandType commandType, object? parameters);
         public abstract Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
         public abstract Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
+        public abstract Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
 
         public virtual Task<int> ExecuteAsync(string commandText, CommandType commandType)
         {
@@ -45,7 +46,22 @@ namespace ManaFox.Databases.Core.Base
         public virtual Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
         {
             return QuerySingleAsync(commandText, commandType, mapFunction, null);
-        } 
+        }
+
+        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
+        {
+            return QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
+        }
+
+        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new()
+        {
+            return QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
+        }
+
+        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
+        {
+            return QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, null);
+        }
 
         protected virtual T ReadSingleDefaultMapping<T>(IRowReader reader) where T : new()
         {
