@@ -1,4 +1,4 @@
-﻿using ManaFox.Databases.Core.Attributes;
+using ManaFox.Databases.Core.Attributes;
 using ManaFox.Databases.Core.Interfaces;
 using System.Data;
 using System.Reflection;
@@ -78,10 +78,9 @@ namespace ManaFox.Databases.Core.Base
 
             foreach (var prop in properties)
             {
+                if (!prop.CanWrite) continue;
                 if (!ShouldMapProperty(prop, out var name)) continue;
-
                 if (!reader.HasColumn(name, out var ordinal)) continue;
-
                 if (reader.IsDBNull(ordinal)) continue;
 
                 var value = reader[name];
