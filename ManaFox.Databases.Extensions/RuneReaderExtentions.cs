@@ -1,9 +1,9 @@
-﻿using ManaFox.Databases.TSQL.Interfaces;
-using ManaFox.Databases.TSQL.Models;
+﻿using ManaFox.Databases.Core.Configuration;
+using ManaFox.Databases.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ManaFox.Databases.TSQL.Extensions
+namespace ManaFox.Databases.Extensions
 {
     public static class RuneReaderExtentions
     {

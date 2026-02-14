@@ -1,6 +1,6 @@
-﻿using ManaFox.Databases.TSQL.Interfaces;
+﻿using ManaFox.Databases.Core.Interfaces;
 
-namespace ManaFox.Databases.TSQL.Models
+namespace ManaFox.Databases.Core.Configuration
 {
     public class RuneReaderConfiguration : IRuneReaderConfiguration
     {

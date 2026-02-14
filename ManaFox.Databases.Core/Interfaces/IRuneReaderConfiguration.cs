@@ -1,4 +1,4 @@
-﻿namespace ManaFox.Databases.TSQL.Interfaces
+﻿namespace ManaFox.Databases.Core.Interfaces
 {
     public interface IRuneReaderConfiguration
     {

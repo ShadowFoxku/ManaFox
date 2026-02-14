@@ -1,4 +1,4 @@
-﻿namespace ManaFox.Databases.TSQL.Attributes
+﻿namespace ManaFox.Databases.Core.Attributes
 {
     /// <summary>
     /// Marks this as to be ignored by the database on read/write operations

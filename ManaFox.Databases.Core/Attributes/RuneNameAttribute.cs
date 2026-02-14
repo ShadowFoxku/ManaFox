@@ -1,4 +1,4 @@
-﻿namespace ManaFox.Databases.TSQL.Attributes
+﻿namespace ManaFox.Databases.Core.Attributes
 {
     [AttributeUsage(AttributeTargets.Property)]
     public class RuneNameAttribute(string columnName) : Attribute
