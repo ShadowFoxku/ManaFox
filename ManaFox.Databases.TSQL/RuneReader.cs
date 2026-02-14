@@ -6,9 +6,10 @@ using System.Data;
 
 namespace ManaFox.Databases.TSQL
 {
-    public class RuneReader(SqlConnection conn) : RuneReaderBase, IRuneReader, IDisposable
+    public class RuneReader(SqlConnection conn, SqlTransaction? transaction = null) : RuneReaderBase, IRuneReader, IDisposable
     {
         private readonly SqlConnection Connection = conn;
+        private readonly SqlTransaction? _sqlTransaction = transaction;
 
         public void Dispose()
         {
@@ -107,6 +108,10 @@ namespace ManaFox.Databases.TSQL
             var com = Connection.CreateCommand();
             com.CommandText = commandText;
             com.CommandType = commandType;
+
+            if (_sqlTransaction != null)
+                com.Transaction = _sqlTransaction;
+
             AddParametersToCommand(com, parameters);
 
             return com;
