@@ -63,7 +63,7 @@ namespace ManaFox.Databases.Core.Base
             return QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, null);
         }
 
-        protected virtual T ReadSingleDefaultMapping<T>(IRowReader reader) where T : new()
+        public static T ReadSingleDefaultMapping<T>(IRowReader reader) where T : new()
         {
             if (typeof(T).IsPrimitive || typeof(T) == typeof(string))
             {
@@ -104,7 +104,7 @@ namespace ManaFox.Databases.Core.Base
             return obj;
         }
 
-        protected virtual bool TryConvert(object value, Type toType, out object? result)
+        public static bool TryConvert(object value, Type toType, out object? result)
         {
             result = null;
 
@@ -161,7 +161,7 @@ namespace ManaFox.Databases.Core.Base
             return false;
         }
 
-        protected virtual bool ShouldMapProperty(PropertyInfo prop, out string mapAs)
+        public static bool ShouldMapProperty(PropertyInfo prop, out string mapAs)
         {
             mapAs = prop.Name;
             var shouldIgnore = prop.GetCustomAttribute<IgnoreRuneAttribute>();

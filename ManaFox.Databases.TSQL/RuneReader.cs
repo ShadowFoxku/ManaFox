@@ -86,7 +86,7 @@ namespace ManaFox.Databases.TSQL
 
         #region Helpers
 
-        private void AddParametersToCommand(SqlCommand command, object? parameters)
+        private static void AddParametersToCommand(SqlCommand command, object? parameters)
         {
             if (parameters is null) return;
 
