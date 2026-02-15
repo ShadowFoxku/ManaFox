@@ -43,7 +43,7 @@ namespace ManaFox.Databases.TSQL
             using var results = RowReader.For(await com.ExecuteReaderAsync());
             while (await results.ReadAsync())
             {
-                T obj = ReadSingleDefaultMapping<T>(results);
+                T obj = mapFunction(results);
                 items.Add(obj);
             }
 
