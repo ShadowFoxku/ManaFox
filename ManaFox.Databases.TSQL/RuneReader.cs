@@ -1,4 +1,5 @@
 ﻿using ManaFox.Core.Errors;
+using ManaFox.Databases.Core;
 using ManaFox.Databases.Core.Base;
 using ManaFox.Databases.Core.Interfaces;
 using Microsoft.Data.SqlClient;
@@ -60,7 +61,7 @@ namespace ManaFox.Databases.TSQL
                 return mapFunction(results);
             }
 
-            throw new TearException("The requested query did not return any results.", new Tear("No results were found for the given query", "DB404"));
+            throw new TearException("The requested query did not return any results.", new Tear("No results were found for the given query", DBErrorCodes.QueryReturnedNoResults));
         }
 
         public override async Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters)
