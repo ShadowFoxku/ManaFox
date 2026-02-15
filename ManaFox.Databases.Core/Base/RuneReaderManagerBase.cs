@@ -26,9 +26,7 @@ namespace ManaFox.Databases.Core.Base
         public abstract Task RollbackAsync(CancellationToken cancellationToken = default);
         public abstract Task RollbackAsync(string key, CancellationToken cancellationToken = default);
 
-        public async Task<Ritual<T>> RunInTransactionAsync<T>(
-            string database,
-            Func<Task<Ritual<T>>> operation)
+        public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<Ritual<T>>> operation)
         {
             await BeginTransactionAsync(database);
             var result = await operation();
@@ -41,9 +39,7 @@ namespace ManaFox.Databases.Core.Base
             return result;
         }
 
-        public async Task<Ritual<T>> RunInTransactionAsync<T>(
-            string database,
-            Func<Task<T>> operation)
+        public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<T>> operation)
         {
             return await Ritual<T>.TryAsync(async () =>
             {
@@ -64,21 +60,21 @@ namespace ManaFox.Databases.Core.Base
 
         public abstract bool IsInTransaction { get; }
 
-        protected readonly IRuneReaderConfiguration _configuration;
+        protected readonly IRuneReaderConfiguration Configuration;
 
         protected RuneReaderManagerBase(IRuneReaderConfiguration config)
         {
             ArgumentNullException.ThrowIfNull(config);
-            _configuration = config;
+            Configuration = config;
         }
 
         protected string GetConnectionString(string? key = null)
         {
             string? connString;
             if (key == null)
-                _configuration.TryGetDefaultString(out connString);
+                Configuration.TryGetDefaultString(out connString);
             else
-                _configuration.TryGetString(key, out connString);
+                Configuration.TryGetString(key, out connString);
 
             if (string.IsNullOrWhiteSpace(connString))
                 throw new ArgumentException("The connection string for the given key was not found, or not valid", nameof(key));
