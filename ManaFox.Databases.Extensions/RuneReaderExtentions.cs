@@ -7,7 +7,7 @@ namespace ManaFox.Databases.Extensions
 {
     public static class RuneReaderExtentions
     {
-        public static IServiceCollection AddRuneReaderDb(this IServiceCollection services, IConfigurationSection connectionSection)
+        public static IServiceCollection AddRuneReaderConfig(this IServiceCollection services, IConfigurationSection connectionSection)
         {
             services.AddSingleton<IRuneReaderConfiguration>(sp =>
             {
@@ -20,7 +20,7 @@ namespace ManaFox.Databases.Extensions
             return services;
         }
 
-        public static IServiceCollection AddRuneReaderDb(this IServiceCollection services, string defaultConnStringName, IConfigurationSection connectionSection)
+        public static IServiceCollection AddRuneReaderConfig(this IServiceCollection services, string defaultConnStringName, IConfigurationSection connectionSection)
         {
             services.AddSingleton<IRuneReaderConfiguration>(sp =>
             {
