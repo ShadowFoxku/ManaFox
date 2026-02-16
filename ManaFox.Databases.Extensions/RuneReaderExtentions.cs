@@ -15,6 +15,9 @@ namespace ManaFox.Databases.Extensions
                     .GetChildren()
                     .ToDictionary(x => x.Key, x => x.Value!);
 
+                if (strings.TryGetValue("DefaultKey", out var defaultConnString) && !string.IsNullOrWhiteSpace(defaultConnString))
+                    return new RuneReaderConfiguration(defaultConnString, strings);
+
                 return new RuneReaderConfiguration(strings);
             });
             return services;
