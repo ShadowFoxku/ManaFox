@@ -55,7 +55,8 @@ public class RuneMigrator
         [
             "Tables",
             "StoredProcedures",
-            "DataTypes"
+            "DataTypes",
+            "Schemas"
         ];
         return Ritual<RuneMigrator>.Flow(this);
     }
