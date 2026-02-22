@@ -1,17 +1,17 @@
 ﻿using DbUp;
+using DbUp.Engine;
 using ManaFox.Core.Flow;
 using System.Reflection;
 
 namespace ManaFox.Databases.Migrations;
 
-/// <summary>
-/// DBUp-based database migrator that follows folder conventions
-/// </summary>
 public class RuneMigrator
 {
     private readonly string _connectionString;
     private Assembly? _scriptsAssembly;
-    private List<string> _folderPatterns = [];
+    private string _migrationsFolder = "Migrations";
+    private string? _predeploymentFolder;
+    private string? _postdeploymentFolder;
     private string _schemaVersionTable = "SchemaVersions";
     private string _schemaVersionSchema = "dbo";
 
@@ -47,29 +47,38 @@ public class RuneMigrator
     }
 
     /// <summary>
-    /// Use the default folder pattern: Tables/{schema}, StoredProcedures, DataTypes
+    /// Set the migrations folder name (default: Migrations)
     /// </summary>
-    public Ritual<RuneMigrator> UseDefaultFolderPattern()
+    public Ritual<RuneMigrator> WithMigrationsFolder(string folderName)
     {
-        _folderPatterns =
-        [
-            "Tables",
-            "StoredProcedures",
-            "DataTypes",
-            "Schemas"
-        ];
+        if (string.IsNullOrWhiteSpace(folderName))
+            return Ritual<RuneMigrator>.Tear("Migrations folder name cannot be empty");
+
+        _migrationsFolder = folderName;
         return Ritual<RuneMigrator>.Flow(this);
     }
 
     /// <summary>
-    /// Specify custom folder patterns for script discovery
+    /// Set the pre-deployment scripts folder (optional)
     /// </summary>
-    public Ritual<RuneMigrator> WithFolderPatterns(params string[] patterns)
+    public Ritual<RuneMigrator> WithPredeploymentFolder(string folderName)
     {
-        if (patterns == null || patterns.Length == 0)
-            return Ritual<RuneMigrator>.Tear("At least one folder pattern is required");
+        if (string.IsNullOrWhiteSpace(folderName))
+            return Ritual<RuneMigrator>.Tear("Pre-deployment folder name cannot be empty");
 
-        _folderPatterns = [.. patterns];
+        _predeploymentFolder = folderName;
+        return Ritual<RuneMigrator>.Flow(this);
+    }
+
+    /// <summary>
+    /// Set the post-deployment scripts folder (optional)
+    /// </summary>
+    public Ritual<RuneMigrator> WithPostdeploymentFolder(string folderName)
+    {
+        if (string.IsNullOrWhiteSpace(folderName))
+            return Ritual<RuneMigrator>.Tear("Post-deployment folder name cannot be empty");
+
+        _postdeploymentFolder = folderName;
         return Ritual<RuneMigrator>.Flow(this);
     }
 
@@ -92,50 +101,72 @@ public class RuneMigrator
     }
 
     /// <summary>
-    /// Execute the database migration
+    /// Execute the database migration (pre-deployment → migrations → post-deployment)
     /// </summary>
     public Ritual<MigrationResult> Run()
     {
         return Ritual<MigrationResult>.Try(() =>
         {
             if (_scriptsAssembly == null)
-                throw new InvalidOperationException("Scripts assembly must be configured before running migration");
-
-            if (_folderPatterns.Count == 0)
-                throw new InvalidOperationException("At least one folder pattern must be configured");
+                throw new InvalidOperationException("Scripts assembly must be configured via WithEmbeddedScripts()");
 
             var startTime = DateTime.UtcNow;
+            var executedScripts = new List<string>();
 
-            // Build DBUp upgrader
-            var upgrader = DeployChanges.To
-                .SqlDatabase(_connectionString)
-                .WithScriptsEmbeddedInAssembly(
-                    _scriptsAssembly,
-                    script => ScriptMatchesFolderPattern(script, _folderPatterns))
-                .LogToConsole();
-
-            if (!string.IsNullOrWhiteSpace(_schemaVersionTable))
+            // Run pre-deployment scripts if configured
+            if (!string.IsNullOrWhiteSpace(_predeploymentFolder))
             {
-                upgrader = upgrader.JournalToSqlTable(_schemaVersionSchema, _schemaVersionTable);
+                var preResult = RunScriptsInFolder(_predeploymentFolder);
+                var scripts = (IEnumerable<DbUp.Engine.SqlScript>)preResult.Scripts;
+                executedScripts.AddRange(scripts.Select(s => s.Name));
             }
 
-            var result = upgrader.Build().PerformUpgrade();
+            // Run main migration scripts
+            var mainResult = RunScriptsInFolder(_migrationsFolder);
+            var mainScripts = (IEnumerable<DbUp.Engine.SqlScript>)mainResult.Scripts;
+            executedScripts.AddRange(mainScripts.Select(s => s.Name));
 
-            if (!result.Successful)
-                throw new MigrationException("Database migration failed", result.Error);
+            // Run post-deployment scripts if configured
+            if (!string.IsNullOrWhiteSpace(_postdeploymentFolder))
+            {
+                var postResult = RunScriptsInFolder(_postdeploymentFolder);
+                var postScripts = (IEnumerable<DbUp.Engine.SqlScript>)postResult.Scripts;
+                executedScripts.AddRange(postScripts.Select(s => s.Name));
+            }
 
             return new MigrationResult
             {
-                ScriptsExecuted = result.Scripts.Count(),
+                ScriptsExecuted = executedScripts.Count,
                 Duration = DateTime.UtcNow - startTime,
-                ExecutedScripts = [.. result.Scripts.Select(s => s.Name)]
+                ExecutedScripts = executedScripts
             };
         });
     }
 
-    private static bool ScriptMatchesFolderPattern(string scriptName, List<string> patterns)
+    private DatabaseUpgradeResult RunScriptsInFolder(string folderName)
     {
-        return patterns.Any(pattern =>
-            scriptName.Contains($".{pattern}.", StringComparison.OrdinalIgnoreCase));
+        var upgrader = DeployChanges.To
+            .SqlDatabase(_connectionString)
+            .WithScriptsEmbeddedInAssembly(
+                _scriptsAssembly!,
+                script => ScriptIsInFolder(script, folderName))
+            .LogToConsole();
+
+        if (!string.IsNullOrWhiteSpace(_schemaVersionTable))
+        {
+            upgrader = upgrader.JournalToSqlTable(_schemaVersionSchema, _schemaVersionTable);
+        }
+
+        var result = upgrader.Build().PerformUpgrade();
+
+        if (!result.Successful)
+            throw new MigrationException($"Database migration failed in folder '{folderName}'", result.Error);
+
+        return result;
+    }
+
+    private static bool ScriptIsInFolder(string scriptName, string folderName)
+    {
+        return scriptName.Contains($".{folderName}.", StringComparison.OrdinalIgnoreCase);
     }
 }
