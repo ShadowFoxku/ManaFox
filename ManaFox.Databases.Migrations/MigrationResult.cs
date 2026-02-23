@@ -1,11 +1,11 @@
-﻿namespace ManaFox.Databases.Migrations;
-
-/// <summary>
-/// Result of a database migration operation
-/// </summary>
-public class MigrationResult
+﻿namespace ManaFox.Databases.Migrations
 {
-    public int ScriptsExecuted { get; init; }
-    public TimeSpan Duration { get; init; }
-    public IReadOnlyList<string> ExecutedScripts { get; init; } = [];
+    public record MigrationResult
+    {
+        public required string DatabaseName { get; init; }
+        public bool DatabaseExists { get; init; }
+        public required IReadOnlyList<DacpacDeploymentResult> DeploymentResults { get; init; }
+        public TimeSpan Duration { get; init; }
+        public int DacpacsDeployed => DeploymentResults.Count;
+    }
 }
