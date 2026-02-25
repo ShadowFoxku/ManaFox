@@ -7,13 +7,13 @@ namespace ManaFox.Databases.TSQL
     public class RuneReaderManager(IRuneReaderConfiguration config) : RuneReaderManagerBase(config), IRuneReaderManager
     {
         private const string DefaultKey = "Default"; // Note, this is only used for transactions
-        private Dictionary<string, TransactionContext> _transactionContexts = new();
+        private readonly Dictionary<string, TransactionContext> TransactionContexts = [];
 
-        public override bool IsInTransaction => _transactionContexts.Values.Any(ctx => ctx.IsActive);
+        public override bool IsInTransaction => TransactionContexts.Values.Any(ctx => ctx.IsActive);
 
         private async Task<IRuneReader> CreateRuneReaderAsync(string? key = null, CancellationToken cancellationToken = default)
         {
-            if (_transactionContexts.TryGetValue(key ?? DefaultKey, out var context) && context.IsActive)
+            if (TransactionContexts.TryGetValue(key ?? DefaultKey, out var context) && context.IsActive)
             {
                 return new RuneReader(context.Connection, context.SqlTransaction);
             }
@@ -34,14 +34,14 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task BeginTransactionAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (_transactionContexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
+            if (TransactionContexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
                 throw new InvalidOperationException("A transaction is already active. Call CommitAsync or RollbackAsync first.");
 
             var conn = new SqlConnection(GetConnectionString(key));
             await conn.OpenAsync(cancellationToken);
             var sqlTransaction = await conn.BeginTransactionAsync(cancellationToken);
 
-            _transactionContexts[key] = new TransactionContext(conn, sqlTransaction);
+            TransactionContexts[key] = new TransactionContext(conn, sqlTransaction);
         }
 
         public override Task CommitAsync(CancellationToken cancellationToken = default)
@@ -49,7 +49,7 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task CommitAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (!_transactionContexts.TryGetValue(key, out var context) || !context.IsActive)
+            if (!TransactionContexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to commit.");
 
             context.IsActive = false;
@@ -74,7 +74,7 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task RollbackAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (!_transactionContexts.TryGetValue(key, out var context) || !context.IsActive)
+            if (!TransactionContexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to rollback.");
 
             context.IsActive = false;
@@ -90,7 +90,7 @@ namespace ManaFox.Databases.TSQL
 
         private async Task CleanupContextAsync(string key, TransactionContext context)
         {
-            _transactionContexts.Remove(key); 
+            TransactionContexts.Remove(key); 
             try
             {
                 await context.SqlTransaction.DisposeAsync();

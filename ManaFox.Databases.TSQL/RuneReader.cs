@@ -29,7 +29,8 @@ namespace ManaFox.Databases.TSQL
 
         ~RuneReader()
         {
-            Dispose();
+            if (Connection.State != ConnectionState.Closed && OwnsConnection)
+                _ = CloseAsync();
         }
 
         public override Task<int> ExecuteAsync(string commandText, CommandType commandType, object? parameters)
