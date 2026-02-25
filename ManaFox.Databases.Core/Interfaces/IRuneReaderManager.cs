@@ -21,7 +21,7 @@ namespace ManaFox.Databases.Core.Interfaces
         Task RollbackAsync(string key, CancellationToken cancellationToken = default);
 
         Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<Ritual<T>>> operation);
-        Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<T>> operation);
+        Task<Ritual<T>> TryRunInTransactionAsync<T>(string database, Func<Task<T>> operation);
 
         bool IsInTransaction { get; }
     }

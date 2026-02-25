@@ -47,7 +47,7 @@ namespace ManaFox.Databases.Core.Base
             }
         }
 
-        public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<T>> operation)
+        public async Task<Ritual<T>> TryRunInTransactionAsync<T>(string database, Func<Task<T>> operation)
         {
             return await Ritual<T>.TryAsync(async () =>
             {
