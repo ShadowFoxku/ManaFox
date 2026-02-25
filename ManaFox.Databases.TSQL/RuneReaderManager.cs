@@ -43,11 +43,11 @@ namespace ManaFox.Databases.TSQL
         {
             var contexts = GetContexts();
             if (contexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
-                throw new InvalidOperationException("A transaction is already active in this context. Call CommitAsync or RollbackAsync first.");
+                throw new InvalidOperationException("A transaction is already active. Call CommitAsync or RollbackAsync first.");
 
             var conn = new SqlConnection(GetConnectionString(key));
             await conn.OpenAsync(cancellationToken);
-            var sqlTransaction = conn.BeginTransaction();
+            var sqlTransaction = await conn.BeginTransactionAsync(cancellationToken); 
 
             contexts[key] = new TransactionContext(conn, sqlTransaction);
         }
@@ -61,13 +61,20 @@ namespace ManaFox.Databases.TSQL
             if (!contexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to commit.");
 
+            context.IsActive = false;
             try
             {
                 await context.SqlTransaction.CommitAsync(cancellationToken);
             }
+            catch
+            {
+                try { await context.SqlTransaction.RollbackAsync(CancellationToken.None); }
+                catch { }
+                throw;
+            }
             finally
             {
-                await CleanupContextAsync(key, context);
+                await CleanupContextAsync(key, context, contexts);
             }
         }
 
@@ -80,19 +87,20 @@ namespace ManaFox.Databases.TSQL
             if (!contexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to rollback.");
 
+            context.IsActive = false;
             try
             {
                 await context.SqlTransaction.RollbackAsync(cancellationToken);
             }
             finally
             {
-                await CleanupContextAsync(key, context);
+                await CleanupContextAsync(key, context, contexts);
             }
         }
 
-        private static async Task CleanupContextAsync(string? key, TransactionContext context)
+        private static async Task CleanupContextAsync(string key, TransactionContext context, Dictionary<string, TransactionContext> contexts)
         {
-            context.IsActive = false;
+            contexts.Remove(key); 
             try
             {
                 await context.SqlTransaction.DisposeAsync();
@@ -101,13 +109,7 @@ namespace ManaFox.Databases.TSQL
             }
             catch
             {
-                // Suppress cleanup errors
             }
-
-            var contexts = GetContexts();
-            contexts.Remove(key ?? DefaultKey);
         }
     }
 }
-
-

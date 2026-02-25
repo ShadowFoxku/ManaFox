@@ -4,13 +4,14 @@ using ManaFox.Databases.Core.Base;
 using ManaFox.Databases.Core.Interfaces;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Data.Common;
 
 namespace ManaFox.Databases.TSQL
 {
-    public class RuneReader(SqlConnection conn, SqlTransaction? transaction = null) : RuneReaderBase, IRuneReader, IDisposable
+    public class RuneReader(SqlConnection conn, DbTransaction? transaction = null) : RuneReaderBase, IRuneReader, IDisposable
     {
         private readonly SqlConnection Connection = conn;
-        private readonly SqlTransaction? _sqlTransaction = transaction;
+        private readonly DbTransaction? _sqlTransaction = transaction;
 
         public void Dispose()
         {
@@ -111,7 +112,7 @@ namespace ManaFox.Databases.TSQL
             com.CommandType = commandType;
 
             if (_sqlTransaction != null)
-                com.Transaction = _sqlTransaction;
+                com.Transaction = (SqlTransaction)_sqlTransaction;
 
             AddParametersToCommand(com, parameters);
 
