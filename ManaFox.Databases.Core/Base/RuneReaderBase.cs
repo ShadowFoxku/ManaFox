@@ -174,5 +174,7 @@ namespace ManaFox.Databases.Core.Base
 
             return true;
         }
+
+        public abstract void Dispose();
     }
 }

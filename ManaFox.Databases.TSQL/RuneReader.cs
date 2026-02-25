@@ -8,12 +8,12 @@ using System.Data.Common;
 
 namespace ManaFox.Databases.TSQL
 {
-    public class RuneReader(SqlConnection conn, DbTransaction? transaction = null) : RuneReaderBase, IRuneReader, IDisposable
+    public class RuneReader(SqlConnection conn, DbTransaction? transaction = null) : RuneReaderBase, IRuneReader
     {
         private readonly SqlConnection Connection = conn;
         private readonly DbTransaction? _sqlTransaction = transaction;
 
-        public void Dispose()
+        public override void Dispose()
         {
             GC.SuppressFinalize(this);
             if (Connection.State != ConnectionState.Closed)
