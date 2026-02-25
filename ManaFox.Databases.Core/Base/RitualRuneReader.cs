@@ -7,10 +7,10 @@ namespace ManaFox.Databases.Core.Base
     public class RitualRuneReader(IRuneReader internalReader) : IRitualRuneReader
     {
         protected IRuneReader Internal = internalReader;
-        public void Dispose()
+        public async ValueTask DisposeAsync()
         {
             GC.SuppressFinalize(this);
-            Internal.Dispose();
+            await Internal.DisposeAsync();
         }
 
         public virtual Task CloseAsync() => Internal.CloseAsync();

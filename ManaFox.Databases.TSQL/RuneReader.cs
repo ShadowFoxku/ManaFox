@@ -14,11 +14,11 @@ namespace ManaFox.Databases.TSQL
         private readonly DbTransaction? Transaction = transaction;
         private readonly bool OwnsConnection = transaction is null;
 
-        public override void Dispose()
+        public override async ValueTask DisposeAsync()
         {
             GC.SuppressFinalize(this);
             if (Connection.State != ConnectionState.Closed && OwnsConnection)
-                _ = CloseAsync();
+                await CloseAsync();
         }
 
         private void ValidateConnection()
