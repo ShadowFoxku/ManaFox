@@ -3,7 +3,7 @@ using System.Data;
 
 namespace ManaFox.Databases.Core.Interfaces
 {
-    public interface IRitualRuneReader
+    public interface IRitualRuneReader : IDisposable
     {
         Task<Ritual<int>> ExecuteAsync(string commandText, CommandType commandType, object? parameters);
         Task<Ritual<int>> ExecuteAsync(string commandText, CommandType commandType);
