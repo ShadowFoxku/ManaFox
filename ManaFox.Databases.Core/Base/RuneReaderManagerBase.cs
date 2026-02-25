@@ -29,14 +29,22 @@ namespace ManaFox.Databases.Core.Base
         public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<Ritual<T>>> operation)
         {
             await BeginTransactionAsync(database);
-            var result = await operation();
+            try
+            {
+                var result = await operation();
 
-            if (result.IsFlowing)
-                await CommitAsync(database);
-            else
-                await RollbackAsync(database);
+                if (result.IsFlowing)
+                    await CommitAsync(database);
+                else
+                    await RollbackAsync(database);
 
-            return result;
+                return result;
+            }
+            catch
+            {
+                try { await RollbackAsync(database); } catch { }
+                throw;
+            }
         }
 
         public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<T>> operation)
@@ -52,7 +60,7 @@ namespace ManaFox.Databases.Core.Base
                 }
                 catch
                 {
-                    await RollbackAsync(database);
+                    try { await RollbackAsync(database); } catch { }
                     throw;
                 }
             });
