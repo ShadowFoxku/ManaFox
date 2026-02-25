@@ -6,9 +6,15 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace ManaFox.Databases.TSQL
 {
-    public class RowReader(SqlDataReader underlying) : DbDataReader, IRowReader
+    public class RowReader(SqlDataReader underlying) : DbDataReader, IRowReader, IAsyncDisposable
     {
         private readonly SqlDataReader Underlying = underlying;
+
+        public override async ValueTask DisposeAsync()
+        {
+            await Underlying.DisposeAsync();
+            GC.SuppressFinalize(this);
+        }
 
         public static RowReader For(SqlDataReader r) => new(r);
 

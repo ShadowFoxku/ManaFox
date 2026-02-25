@@ -44,7 +44,7 @@ namespace ManaFox.Databases.TSQL
             var com = CreateCommand(commandText, commandType, parameters);
 
             var items = new List<T>();
-            using var results = RowReader.For(await com.ExecuteReaderAsync());
+            await using var results = RowReader.For(await com.ExecuteReaderAsync());
             while (await results.ReadAsync())
             {
                 T obj = mapFunction(results);
@@ -58,7 +58,7 @@ namespace ManaFox.Databases.TSQL
         {
             var com = CreateCommand(commandText, commandType, parameters);
 
-            using var results = RowReader.For(await com.ExecuteReaderAsync());
+            await using var results = RowReader.For(await com.ExecuteReaderAsync());
             if (await results.ReadAsync())
             {
                 return mapFunction(results);
@@ -71,7 +71,7 @@ namespace ManaFox.Databases.TSQL
         {
             var com = CreateCommand(commandText, commandType, parameters);
 
-            using var results = RowReader.For(await com.ExecuteReaderAsync());
+            await using var results = RowReader.For(await com.ExecuteReaderAsync());
             if (await results.ReadAsync())
             {
                 return mapFunction(results);
