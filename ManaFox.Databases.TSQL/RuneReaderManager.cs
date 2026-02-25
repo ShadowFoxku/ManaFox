@@ -7,13 +7,20 @@ namespace ManaFox.Databases.TSQL
     public class RuneReaderManager(IRuneReaderConfiguration config) : RuneReaderManagerBase(config), IRuneReaderManager
     {
         private const string DefaultKey = "Default"; // Note, this is only used for transactions
-        private Dictionary<string, TransactionContext> _transactionContexts = new();
+        private static readonly AsyncLocal<Dictionary<string, TransactionContext>> _transactionContexts = new();
 
-        public override bool IsInTransaction => _transactionContexts.Values.Any(ctx => ctx.IsActive);
+        public override bool IsInTransaction => GetContexts().Values.Any(ctx => ctx.IsActive);
+
+        private static Dictionary<string, TransactionContext> GetContexts()
+        {
+            _transactionContexts.Value ??= [];
+            return _transactionContexts.Value;
+        }
 
         private async Task<IRuneReader> CreateRuneReaderAsync(string? key = null, CancellationToken cancellationToken = default)
         {
-            if (_transactionContexts.TryGetValue(key ?? DefaultKey, out var context) && context.IsActive)
+            var contexts = GetContexts();
+            if (contexts.TryGetValue(key ?? DefaultKey, out var context) && context.IsActive)
             {
                 return new RuneReader(context.Connection, context.SqlTransaction);
             }
@@ -34,14 +41,15 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task BeginTransactionAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (_transactionContexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
+            var contexts = GetContexts();
+            if (contexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
                 throw new InvalidOperationException("A transaction is already active. Call CommitAsync or RollbackAsync first.");
 
             var conn = new SqlConnection(GetConnectionString(key));
             await conn.OpenAsync(cancellationToken);
-            var sqlTransaction = await conn.BeginTransactionAsync(cancellationToken);
+            var sqlTransaction = await conn.BeginTransactionAsync(cancellationToken); 
 
-            _transactionContexts[key] = new TransactionContext(conn, sqlTransaction);
+            contexts[key] = new TransactionContext(conn, sqlTransaction);
         }
 
         public override Task CommitAsync(CancellationToken cancellationToken = default)
@@ -49,7 +57,8 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task CommitAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (!_transactionContexts.TryGetValue(key, out var context) || !context.IsActive)
+            var contexts = GetContexts();
+            if (!contexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to commit.");
 
             context.IsActive = false;
@@ -65,7 +74,7 @@ namespace ManaFox.Databases.TSQL
             }
             finally
             {
-                await CleanupContextAsync(key, context);
+                await CleanupContextAsync(key, context, contexts);
             }
         }
 
@@ -74,7 +83,8 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task RollbackAsync(string key, CancellationToken cancellationToken = default)
         {
-            if (!_transactionContexts.TryGetValue(key, out var context) || !context.IsActive)
+            var contexts = GetContexts();
+            if (!contexts.TryGetValue(key, out var context) || !context.IsActive)
                 throw new InvalidOperationException("No active transaction to rollback.");
 
             context.IsActive = false;
@@ -84,13 +94,13 @@ namespace ManaFox.Databases.TSQL
             }
             finally
             {
-                await CleanupContextAsync(key, context);
+                await CleanupContextAsync(key, context, contexts);
             }
         }
 
-        private async Task CleanupContextAsync(string key, TransactionContext context)
+        private static async Task CleanupContextAsync(string key, TransactionContext context, Dictionary<string, TransactionContext> contexts)
         {
-            _transactionContexts.Remove(key); 
+            contexts.Remove(key); 
             try
             {
                 await context.SqlTransaction.DisposeAsync();
