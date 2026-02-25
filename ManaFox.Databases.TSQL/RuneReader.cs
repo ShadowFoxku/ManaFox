@@ -11,12 +11,13 @@ namespace ManaFox.Databases.TSQL
     public class RuneReader(SqlConnection conn, DbTransaction? transaction = null) : RuneReaderBase, IRuneReader
     {
         private readonly SqlConnection Connection = conn;
-        private readonly DbTransaction? _sqlTransaction = transaction;
+        private readonly DbTransaction? Transaction = transaction;
+        private readonly bool OwnsConnection = transaction is null;
 
         public override void Dispose()
         {
             GC.SuppressFinalize(this);
-            if (Connection.State != ConnectionState.Closed)
+            if (Connection.State != ConnectionState.Closed && OwnsConnection)
                 _ = CloseAsync();
         }
 
@@ -82,8 +83,11 @@ namespace ManaFox.Databases.TSQL
 
         public override async Task CloseAsync()
         {
-            await Connection.CloseAsync();
-            await Connection.DisposeAsync();
+            if (OwnsConnection)
+            {
+                await Connection.CloseAsync();
+                await Connection.DisposeAsync();
+            }
         }
 
         #region Helpers
@@ -111,8 +115,8 @@ namespace ManaFox.Databases.TSQL
             com.CommandText = commandText;
             com.CommandType = commandType;
 
-            if (_sqlTransaction != null)
-                com.Transaction = (SqlTransaction)_sqlTransaction;
+            if (Transaction != null)
+                com.Transaction = (SqlTransaction)Transaction;
 
             AddParametersToCommand(com, parameters);
 
