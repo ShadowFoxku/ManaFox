@@ -2,7 +2,7 @@
 
 namespace ManaFox.Databases.Core.Interfaces
 {
-    public interface IRuneReader
+    public interface IRuneReader : IDisposable
     {
         Task<int> ExecuteAsync(string commandText, CommandType commandType, object? parameters);
         Task<int> ExecuteAsync(string commandText, CommandType commandType);
