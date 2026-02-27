@@ -81,7 +81,7 @@ public class Ritual<T> : Either<Tear, T>
         }
         catch (Exception ex)
         {
-            return Ritual<T>.Tear(Errors.Tear.FromException(ex));
+            return Ritual<T>.Tear(Errors.Tear.FromExceptionInternal(ex));
         }
     }
 
@@ -96,7 +96,7 @@ public class Ritual<T> : Either<Tear, T>
         }
         catch (Exception ex)
         {
-            return Ritual<T>.Tear(Errors.Tear.FromException(ex));
+            return Ritual<T>.Tear(Errors.Tear.FromExceptionInternal(ex));
         }
     }
 }

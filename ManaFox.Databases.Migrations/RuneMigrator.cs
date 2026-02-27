@@ -105,7 +105,7 @@ namespace ManaFox.Databases.Migrations
                 return new MigrationResult
                 {
                     DatabaseName = databaseName,
-                    DatabaseExists = _createIfNotExists && results.Any(),
+                    DatabaseExists = _createIfNotExists && results.Count != 0,
                     DeploymentResults = results,
                     Duration = DateTime.UtcNow - startTime
                 };
