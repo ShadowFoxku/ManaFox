@@ -1,6 +1,6 @@
 ﻿namespace ManaFox.Core.Errors
 {
-    public sealed class Tear(string message, string? code = null, Exception? innerException = null)
+    public class Tear(string message, string? code = null, Exception? innerException = null)
     {
         private Tear(string message, string? code = null, Exception? innerException = null, bool isInteralTear = true) : this(message, code, innerException)
         {
