@@ -17,7 +17,7 @@ namespace ManaFox.Databases.Migrations
         {
             int nameWidth = DeploymentResults.Max(r => r.ProjectName.Length);
 
-            StringBuilder sb = new($"Deploy Stats{Environment.NewLine}");
+            StringBuilder sb = new();
             sb.AppendLine($"{ConsoleConstants.Cyan}┌{new string('─', nameWidth + 2)}┬{new string('─', 19)}┐{ConsoleConstants.Reset}");
             sb.AppendLine($"{ConsoleConstants.Cyan}│{ConsoleConstants.Reset} {"Project".PadRight(nameWidth)} {ConsoleConstants.Cyan}│{ConsoleConstants.Reset} {"Duration".PadRight(17)} {ConsoleConstants.Cyan}│{ConsoleConstants.Reset}");
             sb.AppendLine($"{ConsoleConstants.Cyan}├{new string('─', nameWidth + 2)}┼{new string('─', 19)}┤{ConsoleConstants.Reset}");
