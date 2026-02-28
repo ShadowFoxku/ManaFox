@@ -63,8 +63,13 @@
         public const string ShowCursor = "\e[?25h";
         public const string ClearLine = "\e[2K";
         public const string ClearToEOL = "\e[0K";
+        public const string CursorSave = "\e[s";
+        public const string CursorRestore = "\e[u";
 
         public static string CursorUp(int n = 1) => $"\e[{n}A";
+        public static string CursorDown(int n = 1) => $"\e[{n}B";
+        public static string CursorForward(int n = 1) => $"\e[{n}C";
+        public static string CursorBack(int n = 1) => $"\e[{n}D";
         public static string CursorCol(int n = 1) => $"\e[{n}G";
         #endregion Cursors
     }
