@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using ManaFox.Core.ConsoleTools;
+using System.Text;
 
 namespace ManaFox.Databases.Migrations
 {
@@ -17,29 +18,23 @@ namespace ManaFox.Databases.Migrations
             int nameWidth = DeploymentResults.Max(r => r.ProjectName.Length);
 
             StringBuilder sb = new($"Deploy Stats{Environment.NewLine}");
-            sb.AppendLine($"{Cyan}┌{new string('─', nameWidth + 2)}┬{new string('─', 19)}┐{Reset}");
-            sb.AppendLine($"{Cyan}│{Reset} {"Project".PadRight(nameWidth)} {Cyan}│{Reset} {"Duration".PadRight(17)} {Cyan}│{Reset}");
-            sb.AppendLine($"{Cyan}├{new string('─', nameWidth + 2)}┼{new string('─', 19)}┤{Reset}");
+            sb.AppendLine($"{ConsoleConstants.Cyan}┌{new string('─', nameWidth + 2)}┬{new string('─', 19)}┐{ConsoleConstants.Reset}");
+            sb.AppendLine($"{ConsoleConstants.Cyan}│{ConsoleConstants.Reset} {"Project".PadRight(nameWidth)} {ConsoleConstants.Cyan}│{ConsoleConstants.Reset} {"Duration".PadRight(17)} {ConsoleConstants.Cyan}│{ConsoleConstants.Reset}");
+            sb.AppendLine($"{ConsoleConstants.Cyan}├{new string('─', nameWidth + 2)}┼{new string('─', 19)}┤{ConsoleConstants.Reset}");
             foreach (var res in DeploymentResults)
-                sb.AppendLine($"{Cyan}│{Reset} {GetColour(res.Duration, goodLimit, dangerLimit)}{res.ProjectName.PadRight(nameWidth)}{Reset} {Cyan}" +
-                    $"│{Reset} {GetColour(res.Duration, goodLimit, dangerLimit)}{res.Duration.ToString().PadRight(17)}{Reset} {Cyan}│{Reset}");
-            sb.AppendLine($"{Cyan}└{new string('─', nameWidth + 2)}┴{new string('─', 19)}┘{Reset}");
+                sb.AppendLine($"{ConsoleConstants.Cyan}│{ConsoleConstants.Reset} {GetColour(res.Duration, goodLimit, dangerLimit)}{res.ProjectName.PadRight(nameWidth)}{ConsoleConstants.Reset} {ConsoleConstants.Cyan}" +
+                    $"│{ConsoleConstants.Reset} {GetColour(res.Duration, goodLimit, dangerLimit)}{res.Duration.ToString().PadRight(17)}{ConsoleConstants.Reset} {ConsoleConstants.Cyan}│{ConsoleConstants.Reset}");
+            sb.AppendLine($"{ConsoleConstants.Cyan}└{new string('─', nameWidth + 2)}┴{new string('─', 19)}┘{ConsoleConstants.Reset}");
 
             return sb.ToString();
         }
 
-        const string Reset = "\u001b[0m";
-        const string Cyan = "\u001b[36m";
-        const string Green = "\u001b[32m";
-        const string Yellow = "\u001b[33m";
-        const string Red = "\u001b[31m";
-
         private static string GetColour(TimeSpan duration, double goodLimit = 10, double dangerLimit = 20)
         {
             var secs = duration.TotalSeconds;
-            if (secs < goodLimit) return Green;
-            if (secs < dangerLimit) return Yellow;
-            return Red;
+            if (secs < goodLimit) return ConsoleConstants.Green;
+            if (secs < dangerLimit) return ConsoleConstants.Yellow;
+            return ConsoleConstants.Red;
         }
         #endregion
     }
