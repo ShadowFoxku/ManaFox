@@ -1,5 +1,11 @@
 ﻿namespace ManaFox.Security.Passwords
-{
+{    
+    /// <summary>
+    /// Make sure to check Argon2id before changing and tweaking these settings! These are a safe default, if you find it's taking a long time
+    /// it may be worth adjusting, but otherwise these should be fine for most use cases. The defaults are set to be reasonably secure while 
+    /// still being performant on modern hardware. Adjusting these settings can increase security but may also increase the time it takes to 
+    /// hash passwords, so it's important to find a balance that works for your application and user base.
+    /// </summary>
     public class PasswordSettings
     {
         public int DegreeOfParallelism { get; set; } = 2;
