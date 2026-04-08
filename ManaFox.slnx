@@ -5,5 +5,6 @@
   <Project Path="ManaFox.Databases.Migrations/ManaFox.Databases.Migrations.csproj" Id="472a3220-bf84-4169-9618-e8bf3eb8a399" />
   <Project Path="ManaFox.Databases.TSQL/ManaFox.Databases.TSQL.csproj" Id="f111dec8-dfbb-4647-8812-ed7128ccfc92" />
   <Project Path="ManaFox.Extensions/ManaFox.Extensions.csproj" Id="5d76922e-3f7e-45df-a4d3-05de886d0473" />
+  <Project Path="ManaFox.Hosting.Middleware/ManaFox.Hosting.Middleware.csproj" Id="0e0dd1b1-fca0-4193-8737-6624297ae86b" />
   <Project Path="ManaFox.Tests/ManaFox.Tests.csproj" Id="0f31b4a5-b02a-4ddf-bb98-b01431ecfd1b" />
 </Solution>
