@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+		<PackageProjectUrl>https://github.com/ShadowFoxku/ManaFox</PackageProjectUrl>
+		<Description>Commonly used middleware for my hosted libraries</Description>
+		<RepositoryType>git</RepositoryType>
+		<Authors>Roku</Authors>
+		<Company>ManaFox</Company>
+		<PackageId>ManaFox.Security</PackageId>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageIcon>manafox.png</PackageIcon>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<None Update="README.md" Pack="true" PackagePath="" />
+		<None Include="assets/manafox.png" Pack="true" PackagePath="" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Konscious.Security.Cryptography.Argon2" Version="1.3.1" />
+	</ItemGroup>
+
+</Project>
