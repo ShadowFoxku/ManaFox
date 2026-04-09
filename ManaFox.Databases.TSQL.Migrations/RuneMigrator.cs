@@ -4,7 +4,7 @@ using Microsoft.SqlServer.Dac;
 using System.Text;
 using System.Xml.Linq;
 
-namespace ManaFox.Databases.Migrations
+namespace ManaFox.Databases.TSQL.Migrations
 {
     public class RuneMigrator
     {

@@ -2,7 +2,7 @@
   <Project Path="ManaFox.Core/ManaFox.Core.csproj" />
   <Project Path="ManaFox.Databases.Core/ManaFox.Databases.Core.csproj" Id="f8949db0-5181-42f1-8f6f-b1e89ff110bd" />
   <Project Path="ManaFox.Databases.Extensions/ManaFox.Databases.Extensions.csproj" Id="a5ee8461-ecd5-4f81-b5e7-ed718972800b" />
-  <Project Path="ManaFox.Databases.Migrations/ManaFox.Databases.Migrations.csproj" Id="472a3220-bf84-4169-9618-e8bf3eb8a399" />
+  <Project Path="ManaFox.Databases.TSQL.Migrations/ManaFox.Databases.TSQL.Migrations.csproj" Id="23f497ea-69ca-427d-82d7-cb0194d3b84e" />
   <Project Path="ManaFox.Databases.TSQL/ManaFox.Databases.TSQL.csproj" Id="f111dec8-dfbb-4647-8812-ed7128ccfc92" />
   <Project Path="ManaFox.Extensions/ManaFox.Extensions.csproj" Id="5d76922e-3f7e-45df-a4d3-05de886d0473" />
   <Project Path="ManaFox.Hosting.Middleware/ManaFox.Hosting.Middleware.csproj" Id="0e0dd1b1-fca0-4193-8737-6624297ae86b" />

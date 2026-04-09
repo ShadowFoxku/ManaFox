@@ -1,4 +1,4 @@
-namespace ManaFox.Databases.Migrations;
+namespace ManaFox.Databases.TSQL.Migrations;
 
 public class ScriptGenerationResult
 {

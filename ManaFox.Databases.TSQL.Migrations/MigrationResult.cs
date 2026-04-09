@@ -1,7 +1,7 @@
 ﻿using ManaFox.Core.ConsoleTools;
 using System.Text;
 
-namespace ManaFox.Databases.Migrations
+namespace ManaFox.Databases.TSQL.Migrations
 {
     public record MigrationResult
     {
