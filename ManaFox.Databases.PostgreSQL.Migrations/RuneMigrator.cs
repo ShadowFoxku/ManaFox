@@ -88,7 +88,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
                 foreach (var folder in _sqlFolders)
                 {
-                    var result = await DeployFolderAsync(folder, databaseName);
+                    var result = await DeployFolderAsync(folder);
                     results.Add(result);
                 }
 
@@ -123,7 +123,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
                 foreach (var folder in _sqlFolders)
                 {
-                    var migrationSql = await GenerateMigrationSqlAsync(folder, databaseName);
+                    var migrationSql = await GenerateMigrationSqlAsync(folder);
 
                     if (string.IsNullOrWhiteSpace(migrationSql))
                         continue;
@@ -162,10 +162,10 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 throw new InvalidOperationException("At least one SQL folder must be registered via WithSqlFolder()");
         }
 
-        private async Task<SchemaDeploymentResult> DeployFolderAsync(string folder, string databaseName)
+        private async Task<SchemaDeploymentResult> DeployFolderAsync(string folder)
         {
             var start = DateTime.UtcNow;
-            var migrationSql = await GenerateMigrationSqlAsync(folder, databaseName);
+            var migrationSql = await GenerateMigrationSqlAsync(folder);
 
             if (!string.IsNullOrWhiteSpace(migrationSql))
             {
@@ -191,7 +191,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         ///   3. Diff its schema against the target DB via information_schema / pg_catalog
         ///   4. Return the delta as executable SQL
         /// </summary>
-        private async Task<string> GenerateMigrationSqlAsync(string folder, string databaseName)
+        private async Task<string> GenerateMigrationSqlAsync(string folder)
         {
             await using var shadow = await ShadowDatabase.CreateAsync();
             await shadow.ApplySqlFolderAsync(folder);

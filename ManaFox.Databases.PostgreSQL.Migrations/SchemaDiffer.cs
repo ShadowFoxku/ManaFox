@@ -55,7 +55,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
         }
 
-        private void AppendCreateTable(StringBuilder sb, TableSchema table)
+        private static void AppendCreateTable(StringBuilder sb, TableSchema table)
         {
             sb.AppendLine($"CREATE TABLE IF NOT EXISTS \"{table.Schema}\".\"{table.Name}\" (");
 

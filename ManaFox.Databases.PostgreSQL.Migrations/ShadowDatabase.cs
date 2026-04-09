@@ -21,8 +21,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
         public static async Task<ShadowDatabase> CreateAsync()
         {
-            var container = new PostgreSqlBuilder()
-                .WithImage("postgres:16-alpine")
+            var container = new PostgreSqlBuilder("postgres:16-alpine")
                 .WithDatabase("shadow")
                 .WithUsername("shadow")
                 .WithPassword("shadow")

@@ -21,9 +21,9 @@
     <ProjectReference Include="..\ManaFox.Core\ManaFox.Core.csproj" />
   </ItemGroup>
 
-    <ItemGroup>
-	    <ProjectReference Include="..\ManaFox.Core\ManaFox.Core.csproj" />
-	    <ProjectReference Include="..\ManaFox.Databases.Core\ManaFox.Databases.Core.csproj" />
-    </ItemGroup>
+	<ItemGroup>
+		<None Update="README.md" Pack="true" PackagePath="" />
+		<None Include="assets/manafox.png" Pack="true" PackagePath="" />
+	</ItemGroup>
 
 </Project>
