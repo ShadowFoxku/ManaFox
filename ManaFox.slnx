@@ -2,6 +2,8 @@
   <Project Path="ManaFox.Core/ManaFox.Core.csproj" />
   <Project Path="ManaFox.Databases.Core/ManaFox.Databases.Core.csproj" Id="f8949db0-5181-42f1-8f6f-b1e89ff110bd" />
   <Project Path="ManaFox.Databases.Extensions/ManaFox.Databases.Extensions.csproj" Id="a5ee8461-ecd5-4f81-b5e7-ed718972800b" />
+  <Project Path="ManaFox.Databases.PostgreSQL.Migrations/ManaFox.Databases.PostgreSQL.Migrations.csproj" />
+  <Project Path="ManaFox.Databases.PostgreSQL/ManaFox.Databases.PostgreSQL.csproj" Id="641754d7-aff8-4b99-8a85-99a7947d7a7c" />
   <Project Path="ManaFox.Databases.TSQL.Migrations/ManaFox.Databases.TSQL.Migrations.csproj" Id="23f497ea-69ca-427d-82d7-cb0194d3b84e" />
   <Project Path="ManaFox.Databases.TSQL/ManaFox.Databases.TSQL.csproj" Id="f111dec8-dfbb-4647-8812-ed7128ccfc92" />
   <Project Path="ManaFox.Extensions/ManaFox.Extensions.csproj" Id="5d76922e-3f7e-45df-a4d3-05de886d0473" />

@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	<GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+	<PackageProjectUrl>https://github.com/ShadowFoxku/ManaFox</PackageProjectUrl>
+	<Description>Database wrapper for standard read/write/execute operations on a TSQL (Microsoft.Data.SqlClient) connection</Description>
+	<RepositoryType>git</RepositoryType>
+	<Authors>Roku</Authors>
+	<Company>ManaFox</Company>
+	<PackageId>ManaFox.Databases.PostgreSQL</PackageId>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageIcon>manafox.png</PackageIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="10.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ManaFox.Databases.Core\ManaFox.Databases.Core.csproj" />
+  </ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\ManaFox.Core\ManaFox.Core.csproj" />
+		<ProjectReference Include="..\ManaFox.Databases.Core\ManaFox.Databases.Core.csproj" />
+	</ItemGroup>
+
+</Project>
