@@ -99,7 +99,6 @@ namespace ManaFox.Databases.PostgreSQL
 
                 var val = prop.GetValue(parameters);
                 var parameter = command.CreateParameter();
-                // Npgsql uses @ prefix just like SQL Server
                 parameter.ParameterName = $"@{mapName}";
                 parameter.Value = val ?? DBNull.Value;
                 command.Parameters.Add(parameter);
