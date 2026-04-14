@@ -16,6 +16,35 @@ namespace ManaFox.Extensions.Flow
                 onRight: value => Ritual<TMapped>.Flow(map(value)));
 
         /// <summary>
+        /// Transform the flowing value asynchronously into a new type, leaving tears untouched.
+        /// If the ritual is torn, <paramref name="map"/> is never invoked.
+        /// </summary>
+        public static async Task<Ritual<TMapped>> MapAsync<T, TMapped>(
+            this Ritual<T> ritual,
+            Func<T, Task<TMapped>> map)
+            => ritual.IsTorn
+                ? Ritual<TMapped>.Tear(ritual.GetTear()!)
+                : Ritual<TMapped>.Flow(await map(ritual.GetValue()!));
+
+        /// <summary>
+        /// Await a ritual task, then transform the flowing value synchronously into a new type,
+        /// leaving tears untouched. If the ritual is torn, <paramref name="map"/> is never invoked.
+        /// </summary>
+        public static async Task<Ritual<TMapped>> MapAsync<T, TMapped>(
+            this Task<Ritual<T>> ritualTask,
+            Func<T, TMapped> map)
+            => (await ritualTask).Map(map);
+
+        /// <summary>
+        /// Await a ritual task, then transform the flowing value asynchronously into a new type,
+        /// leaving tears untouched. If the ritual is torn, <paramref name="map"/> is never invoked.
+        /// </summary>
+        public static async Task<Ritual<TMapped>> MapAsync<T, TMapped>(
+            this Task<Ritual<T>> ritualTask,
+            Func<T, Task<TMapped>> map)
+            => await (await ritualTask).MapAsync(map);
+
+        /// <summary>
         /// Chain an operation that can itself fail (monad bind). If the ritual is torn,
         /// the tear is propagated and <paramref name="bind"/> is never invoked.
         /// </summary>
