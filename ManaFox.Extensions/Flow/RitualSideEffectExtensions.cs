@@ -35,6 +35,18 @@ namespace ManaFox.Extensions.Flow
             => await (await ritualTask).ScryAsync(action);
 
         /// <summary>
+        /// Await a ritual task, then peek at the flowing value asynchronously for a side effect
+        /// without altering the ritual. If the ritual is torn, <paramref name="action"/> is never invoked.
+        /// </summary>
+        public static Task<Ritual<T>> ScryAsync<T>(
+            this Task<Ritual<T>> ritualTask, Action<T> action)
+            => ritualTask.ScryAsync(x =>
+            {
+                action(x);
+                return Task.CompletedTask;
+            });
+
+        /// <summary>
         /// Peek at the tear for a side effect without altering the ritual.
         /// If the ritual is flowing, <paramref name="action"/> is never invoked.
         /// </summary>
