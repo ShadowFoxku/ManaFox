@@ -149,6 +149,22 @@ namespace ManaFox.Extensions.Flow
             => (await ritualTask).Ensure(predicate, tearMessage);
 
         /// <summary>
+        /// Await a ritual task, then assert a condition on the flowing value. If the predicate
+        /// returns <see langword="false"/>, the ritual becomes torn with <paramref name="tearMessage"/>.
+        /// Torn rituals pass through unchanged.
+        /// </summary>
+        public static async Task<Ritual<T>> EnsureAsync<T>(
+            this Task<Ritual<T>> ritualTask,
+            Func<T, Task<bool>> predicate,
+            string tearMessage)
+        {
+            var ritual = await ritualTask;
+            return await ritual.BindAsync(async value => await predicate(value)
+                ? Ritual<T>.Flow(value)
+                : Ritual<T>.Tear(tearMessage));
+        }
+
+        /// <summary>
         /// Assert a condition on a flowing value. If the predicate returns <see langword="false"/>,
         /// the ritual becomes torn with <paramref name="tearMessage"/>. Torn rituals pass through unchanged.
         /// </summary>
@@ -170,5 +186,21 @@ namespace ManaFox.Extensions.Flow
             Func<T, bool> predicate,
             string tearMessage, HttpStatusCode httpStatus)
             => (await ritualTask).Ensure(predicate, tearMessage, httpStatus);
+
+        /// <summary>
+        /// Await a ritual task, then assert a condition on the flowing value. If the predicate
+        /// returns <see langword="false"/>, the ritual becomes torn with <paramref name="tearMessage"/>.
+        /// Torn rituals pass through unchanged.
+        /// </summary>
+        public static async Task<Ritual<T>> EnsureAsync<T>(
+            this Task<Ritual<T>> ritualTask,
+            Func<T, Task<bool>> predicate,
+            string tearMessage, HttpStatusCode httpStatus)
+        {
+            var ritual = await ritualTask;
+            return await ritual.BindAsync(async value => await predicate(value)
+                ? Ritual<T>.Flow(value)
+                : Ritual<T>.Tear(new HTTPTear(tearMessage, httpStatus)));
+        }
     }
 }
