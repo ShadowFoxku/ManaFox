@@ -3,6 +3,7 @@ using ManaFox.Databases.Core;
 using ManaFox.Databases.Core.Base;
 using ManaFox.Databases.Core.Interfaces;
 using Microsoft.Data.SqlClient;
+using System.Collections;
 using System.Data;
 using System.Data.Common;
 
@@ -92,6 +93,12 @@ namespace ManaFox.Databases.TSQL
         }
 
         #region Helpers
+        private static readonly Dictionary<Type, string> TvpTypeMap = new()
+        {
+            { typeof(long),   "dbo.LongList"   },
+            { typeof(int),    "dbo.IntList"    },
+            { typeof(string), "dbo.StringList" },
+        };
 
         private static void AddParametersToCommand(SqlCommand command, object? parameters)
         {
@@ -102,10 +109,35 @@ namespace ManaFox.Databases.TSQL
                 if (!ShouldMapProperty(prop, out var mapName)) continue;
 
                 var val = prop.GetValue(parameters);
-                var parameter = command.CreateParameter();
-                parameter.ParameterName = $"@{mapName}";
-                parameter.Value = val ?? DBNull.Value;
-                command.Parameters.Add(parameter);
+
+                if (val is IEnumerable enumerable && val is not string)
+                {
+                    var items = enumerable.Cast<object?>().ToList();
+                    var elementType = prop.PropertyType.GetGenericArguments()[0];
+
+                    if (elementType is null || !TvpTypeMap.TryGetValue(elementType, out var tvpTypeName))
+                        throw new NotSupportedException(
+                            $"No TVP type mapped for element type '{elementType?.Name ?? "unknown"}'.");
+
+                    var table = new DataTable();
+                    table.Columns.Add("Value", elementType);
+                    foreach (var item in items)
+                        table.Rows.Add(item ?? DBNull.Value);
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = $"@{mapName}";
+                    parameter.SqlDbType = SqlDbType.Structured;
+                    parameter.TypeName = tvpTypeName;
+                    parameter.Value = table;
+                    command.Parameters.Add(parameter);
+                }
+                else
+                {
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = $"@{mapName}";
+                    parameter.Value = val ?? DBNull.Value;
+                    command.Parameters.Add(parameter);
+                }
             }
         }
 
