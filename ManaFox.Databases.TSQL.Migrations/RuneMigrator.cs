@@ -1,5 +1,4 @@
 ﻿using ManaFox.Core.Flow;
-using ManaFox.Databases.TSQL.Migrations.embedded;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Dac;
 using System.Text;
@@ -102,8 +101,6 @@ namespace ManaFox.Databases.TSQL.Migrations
                     var dacResult = DeployDacpac(dacpacPath, databaseName);
                     results.Add(dacResult);
                 }
-
-                EnsureTvpTypesExist.EnsureTvpTypes(_connectionString);
 
                 return new MigrationResult
                 {
