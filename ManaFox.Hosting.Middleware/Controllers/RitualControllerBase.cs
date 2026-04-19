@@ -55,6 +55,6 @@ namespace ManaFox.Hosting.Middleware.Controllers
             return new ApiMessageResponse(message);
         }
 
-        public string Message = message;
+        public string Message { get; } = message;
     }
 }
