@@ -2,6 +2,8 @@
 using ManaFox.Core.Flow;
 using Microsoft.AspNetCore.Mvc;
 using System.Net;
+using ManaFox.Hosting.Middleware.ResponseWrapper;
+using Microsoft.AspNetCore.Http;
 
 namespace ManaFox.Hosting.Middleware.Controllers
 {
@@ -12,6 +14,7 @@ namespace ManaFox.Hosting.Middleware.Controllers
             return new HTTPTear(message, status);
         }
 
+        [Obsolete("Use FromRitual<T> instead.")]
         public bool IsRitualValid<T>(Ritual<T> ritual, Func<string, string> messageFormatter, out IActionResult result)
         {
             ArgumentNullException.ThrowIfNull(ritual);
@@ -45,6 +48,47 @@ namespace ManaFox.Hosting.Middleware.Controllers
             }
 
             return true;
+        }
+        
+        protected IActionResult FromRitual<T>(Ritual<T> ritual, Func<string, string>? messageFormatter = null)
+        {
+            ArgumentNullException.ThrowIfNull(ritual);
+
+            if (!ritual.IsTorn)
+            {
+                var sigil = SigilBuilder.Success()
+                    .WithData(ritual.GetValue())
+                    .Build();
+                return Ok(sigil);
+            }
+
+            var tear = ritual.GetTear()!;
+            if (tear.IsInternalTear)
+            {
+                if (tear.InnerException != null)
+                    throw tear.InnerException;
+                throw new Exception("An unhandled tear occurred. Message: " + tear.Message);
+            }
+
+            var message = messageFormatter?.Invoke(tear.Message) ?? tear.Message;
+
+            var failure = SigilBuilder.Failure()
+                .WithMessage(message)
+                .WithError("ritual", tear.Message)
+                .Build();
+
+            if (tear is HTTPTear httpTear)
+            {
+                return httpTear.StatusCode switch
+                {
+                    HttpStatusCode.Unauthorized => Unauthorized(),
+                    HttpStatusCode.Forbidden => StatusCode(StatusCodes.Status403Forbidden, failure),
+                    HttpStatusCode.NotFound => NotFound(failure),
+                    _ => BadRequest(failure)
+                };
+            }
+
+            return BadRequest(failure);
         }
     }
 
