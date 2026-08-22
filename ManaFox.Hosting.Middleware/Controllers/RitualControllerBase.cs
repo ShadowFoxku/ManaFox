@@ -9,59 +9,30 @@ namespace ManaFox.Hosting.Middleware.Controllers
 {
     public class RitualControllerBase : ControllerBase
     {
-        public HTTPTear APITear(string message, HttpStatusCode status)
-        {
-            return new HTTPTear(message, status);
-        }
-
-        [Obsolete("Use FromRitual<T> instead.")]
-        public bool IsRitualValid<T>(Ritual<T> ritual, Func<string, string> messageFormatter, out IActionResult result)
-        {
-            ArgumentNullException.ThrowIfNull(ritual);
-            result = Accepted(ApiMessageResponse.Standard("Handler behaviour is inconsistent. Please contact support."));
-
-            if (ritual.IsTorn)
-            {
-                var tear = ritual.GetTear()!;
-
-                if (tear.IsInternalTear)
-                {   // bad state, we should handle this before we reach the API validation layer
-                    if (tear.InnerException != null)
-                        throw tear.InnerException;
-                    throw new Exception($"An unhandled tear occured. Message: {tear.Message}");
-                }
-
-                var message = messageFormatter?.Invoke(tear.Message) ?? tear.Message;
-                var messageBody = ApiMessageResponse.Standard(message);
-
-                result = tear is HTTPTear http
-                    ? http.StatusCode switch
-                    {
-                        HttpStatusCode.NotFound => NotFound(messageBody),
-                        HttpStatusCode.Unauthorized => Unauthorized(),
-                        HttpStatusCode.Forbidden => Forbid(),
-                        _ => BadRequest(messageBody),
-                    }
-                    : BadRequest(messageBody);
-
-                return false;
-            }
-
-            return true;
-        }
-        
         protected IActionResult FromRitual<T>(Ritual<T> ritual, Func<string, string>? messageFormatter = null)
         {
             ArgumentNullException.ThrowIfNull(ritual);
 
-            if (!ritual.IsTorn)
-            {
-                var sigil = SigilBuilder.Success()
-                    .WithData(ritual.GetValue())
-                    .Build();
-                return Ok(sigil);
-            }
+            if (ritual.IsTorn) return FromFailedRitual(ritual, messageFormatter);
+            
+            var sigil = SigilBuilder.Success().WithData(ritual.GetValue()).Build();
+            return Ok(sigil); // i really would rather allow 201, 202, 204 in the future. need to fix this.
+        }
 
+        /// <summary>
+        /// Same as the other, but lets the user handle their own success path, not auto-wrapped in a sigil.
+        /// </summary>
+        protected IActionResult FromRitual<T>(Ritual<T> ritual, Func<T, IActionResult> onSuccess,
+            Func<string, string>? messageFormatter = null)
+        {
+            ArgumentNullException.ThrowIfNull(ritual);
+            ArgumentNullException.ThrowIfNull(onSuccess);
+
+            return !ritual.IsTorn ? onSuccess(ritual.GetValue()!) : FromFailedRitual(ritual, messageFormatter);
+        }
+
+        private IActionResult FromFailedRitual<T>(Ritual<T> ritual, Func<string, string>? messageFormatter)
+        {
             var tear = ritual.GetTear()!;
             if (tear.IsInternalTear)
             {
@@ -90,15 +61,5 @@ namespace ManaFox.Hosting.Middleware.Controllers
 
             return BadRequest(failure);
         }
-    }
-
-    public class ApiMessageResponse(string message)
-    {
-        public static ApiMessageResponse Standard(string message)
-        {
-            return new ApiMessageResponse(message);
-        }
-
-        public string Message { get; } = message;
     }
 }
