@@ -67,9 +67,9 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
         }
 
-        public async Task<DatabaseSchema> ReadSchemaAsync()
+        public async Task<DatabaseSchema> ReadSchemaAsync(MigratorOptions? options = null)
         {
-            return await PostgresSchemaReader.ReadAsync(_connection);
+            return await PostgresSchemaReader.ReadAsync(_connection, options);
         }
 
         public async ValueTask DisposeAsync()

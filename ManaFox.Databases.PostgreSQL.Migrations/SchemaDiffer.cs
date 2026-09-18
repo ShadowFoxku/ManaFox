@@ -8,15 +8,20 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
     /// </summary>
     internal class SchemaDiffer(MigratorOptions options)
     {
-        private readonly MigratorOptions _options = options;
+        private readonly MigratorOptions _options = options; 
+        private readonly List<string> _destructiveOperations = [];
 
         public string GenerateMigration(DatabaseSchema desired, DatabaseSchema current)
         {
             var sb = new StringBuilder();
+            _destructiveOperations.Clear();
 
             AppendTableChanges(sb, desired, current);
             AppendIndexChanges(sb, desired, current);
             AppendForeignKeyChanges(sb, desired, current);
+
+            if (_options.BlockOnPossibleDataLoss && _destructiveOperations.Count > 0)
+                throw new InvalidOperationException("Migration blocked — the following operations may cause data loss:\n" + string.Join('\n', _destructiveOperations));
 
             return sb.ToString().Trim();
         }
@@ -44,13 +49,16 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 AppendColumnChanges(sb, desiredTable, currentTable);
             }
 
-            // Dropped tables — only if option is set, matching DacFX DropObjectsNotInSource
             if (_options.DropObjectsNotInSource)
             {
                 foreach (var table in current.Tables)
                 {
                     if (!desiredTables.ContainsKey(table.FullName))
-                        sb.AppendLine($"DROP TABLE IF EXISTS \"{table.Schema}\".\"{table.Name}\" CASCADE;");
+                    {
+                        var stmt = $"DROP TABLE IF EXISTS \"{table.Schema}\".\"{table.Name}\" CASCADE;";
+                        sb.AppendLine(stmt);
+                        _destructiveOperations.Add(stmt);
+                    }
                 }
             }
         }
@@ -92,8 +100,12 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             {
                 if (!currentCols.TryGetValue(desiredCol.Name, out var currentCol)) continue;
 
-                if (!string.Equals(desiredCol.DataType, currentCol.DataType, StringComparison.OrdinalIgnoreCase))
-                    sb.AppendLine($"ALTER TABLE \"{desired.Schema}\".\"{desired.Name}\" ALTER COLUMN \"{desiredCol.Name}\" TYPE {desiredCol.DataType};");
+                if (!string.Equals(BuildFullDataType(desiredCol), BuildFullDataType(currentCol), StringComparison.OrdinalIgnoreCase))
+                {
+                    var stmt = $"ALTER TABLE \"{desired.Schema}\".\"{desired.Name}\" ALTER COLUMN \"{desiredCol.Name}\" TYPE {BuildFullDataType(desiredCol)};";
+                    sb.AppendLine(stmt);
+                    _destructiveOperations.Add(stmt);
+                }
 
                 if (desiredCol.IsNullable != currentCol.IsNullable)
                 {
@@ -108,7 +120,11 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 foreach (var col in current.Columns)
                 {
                     if (!desiredCols.ContainsKey(col.Name))
-                        sb.AppendLine($"ALTER TABLE \"{desired.Schema}\".\"{desired.Name}\" DROP COLUMN IF EXISTS \"{col.Name}\";");
+                    {
+                        var stmt = $"ALTER TABLE \"{desired.Schema}\".\"{desired.Name}\" DROP COLUMN IF EXISTS \"{col.Name}\";";
+                        sb.AppendLine(stmt);
+                        _destructiveOperations.Add(stmt);
+                    }
                 }
             }
         }
@@ -122,11 +138,17 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             var currentIdx = current.Indexes.ToDictionary(i => i.IndexName, StringComparer.OrdinalIgnoreCase);
             var desiredIdx = desired.Indexes.ToDictionary(i => i.IndexName, StringComparer.OrdinalIgnoreCase);
 
-            // New indexes
             foreach (var idx in desired.Indexes)
             {
-                if (!currentIdx.ContainsKey(idx.IndexName))
+                if (!currentIdx.TryGetValue(idx.IndexName, out var existing))
+                {
                     sb.AppendLine($"{idx.Definition};");
+                }
+                else if (!string.Equals(existing.Definition, idx.Definition, StringComparison.OrdinalIgnoreCase))
+                {
+                    sb.AppendLine($"DROP INDEX IF EXISTS \"{existing.TableSchema}\".\"{existing.IndexName}\";");
+                    sb.AppendLine($"{idx.Definition};");
+                }
             }
 
             // Dropped indexes
@@ -149,11 +171,16 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             var currentFks = current.ForeignKeys.ToDictionary(f => f.ConstraintName, StringComparer.OrdinalIgnoreCase);
             var desiredFks = desired.ForeignKeys.ToDictionary(f => f.ConstraintName, StringComparer.OrdinalIgnoreCase);
 
-            // New foreign keys
+            // New or changed foreign keys (same name, different target -> drop & recreate)
             foreach (var fk in desired.ForeignKeys)
             {
-                if (!currentFks.ContainsKey(fk.ConstraintName))
+                var isChanged = currentFks.TryGetValue(fk.ConstraintName, out var existing) && !FkTargetsMatch(existing, fk);
+
+                if (!currentFks.ContainsKey(fk.ConstraintName) || isChanged)
                 {
+                    if (isChanged)
+                        sb.AppendLine($"ALTER TABLE \"{existing!.TableSchema}\".\"{existing.TableName}\" DROP CONSTRAINT IF EXISTS \"{existing.ConstraintName}\";");
+
                     sb.AppendLine(
                         $"ALTER TABLE \"{fk.TableSchema}\".\"{fk.TableName}\" " +
                         $"ADD CONSTRAINT \"{fk.ConstraintName}\" " +
@@ -173,6 +200,14 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
         }
 
+        private static bool FkTargetsMatch(ForeignKeySchema a, ForeignKeySchema b) =>
+            string.Equals(a.TableSchema, b.TableSchema, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.TableName, b.TableName, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.ColumnName, b.ColumnName, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.ForeignTableSchema, b.ForeignTableSchema, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.ForeignTableName, b.ForeignTableName, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(a.ForeignColumnName, b.ForeignColumnName, StringComparison.OrdinalIgnoreCase);
+
         #endregion
 
         #region Helpers
@@ -180,7 +215,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         private static string FormatColumnDefinition(ColumnSchema col)
         {
             var sb = new StringBuilder();
-            sb.Append($"\"{col.Name}\" {col.DataType}");
+            sb.Append($"\"{col.Name}\" {BuildFullDataType(col)}");
 
             if (!string.IsNullOrWhiteSpace(col.Default))
                 sb.Append($" DEFAULT {col.Default}");
@@ -189,6 +224,19 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 sb.Append(" NOT NULL");
 
             return sb.ToString();
+        }
+
+        private static string BuildFullDataType(ColumnSchema col)
+        {
+            if (col.CharacterMaxLength is int len)
+                return $"{col.DataType}({len})";
+
+            if (col.NumericPrecision is int precision)
+                return col.NumericScale is int scale
+                    ? $"{col.DataType}({precision},{scale})"
+                    : $"{col.DataType}({precision})";
+
+            return col.DataType;
         }
 
         #endregion

@@ -24,7 +24,7 @@ namespace ManaFox.Databases.PostgreSQL
         ~RuneReader()
         {
             if (Connection.State != ConnectionState.Closed && OwnsConnection)
-                _ = CloseAsync();
+                conn.Close();
         }
 
         private void ValidateConnection()

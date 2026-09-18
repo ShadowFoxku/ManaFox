@@ -70,6 +70,7 @@ namespace ManaFox.Databases.PostgreSQL
 
         [return: DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields | DynamicallyAccessedMemberTypes.PublicProperties)]
         public override Type GetFieldType(int ordinal) => Underlying.GetFieldType(ordinal);
+        public override Task<T> GetFieldValueAsync<T>(int ordinal, CancellationToken cancellationToken) => Underlying.GetFieldValueAsync<T>(ordinal, cancellationToken);
 
         public override float GetFloat(int ordinal) => Underlying.GetFloat(ordinal);
 
@@ -92,9 +93,12 @@ namespace ManaFox.Databases.PostgreSQL
         public override int GetValues(object[] values) => Underlying.GetValues(values);
 
         public override bool IsDBNull(int ordinal) => Underlying.IsDBNull(ordinal);
+        public override Task<bool> IsDBNullAsync(int ordinal, CancellationToken cancellationToken) => Underlying.IsDBNullAsync(ordinal, cancellationToken);
 
         public override bool NextResult() => Underlying.NextResult();
+        public override Task<bool> NextResultAsync(CancellationToken cancellationToken) => Underlying.NextResultAsync(cancellationToken);
 
         public override bool Read() => Underlying.Read();
+        public override Task<bool> ReadAsync(CancellationToken cancellationToken) => Underlying.ReadAsync(cancellationToken);
     }
 }

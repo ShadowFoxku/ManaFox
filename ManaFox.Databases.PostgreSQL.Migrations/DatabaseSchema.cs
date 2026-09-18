@@ -28,6 +28,9 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         public bool IsNullable { get; init; }
         public string? Default { get; init; }
         public int OrdinalPosition { get; init; }
+        public int? CharacterMaxLength { get; init; }
+        public int? NumericPrecision { get; init; }
+        public int? NumericScale { get; init; }
     }
 
     internal class IndexSchema

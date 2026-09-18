@@ -1,5 +1,6 @@
 using ManaFox.Core.Flow;
 using Npgsql;
+using Org.BouncyCastle.Asn1.X509;
 using System.Text;
 
 namespace ManaFox.Databases.PostgreSQL.Migrations
@@ -10,6 +11,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         private readonly List<string> _sqlFolders = [];
         private bool _createIfNotExists = true;
         private MigratorOptions _options = MigratorOptions.Default;
+        private readonly List<string> _functionFolders = [];
 
         private RuneMigrator() { }
 
@@ -38,8 +40,8 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             if (!Directory.Exists(folderPath))
                 return Ritual<RuneMigrator>.Tear($"SQL folder not found: {folderPath}");
 
-            var sqlFiles = Directory.GetFiles(folderPath, "*.sql", SearchOption.AllDirectories);
-            if (sqlFiles.Length == 0)
+            var sqlFiles = GetSqlFiles(folderPath);
+            if (sqlFiles.Count == 0)
                 return Ritual<RuneMigrator>.Tear($"No .sql files found in: {folderPath}");
 
             _sqlFolders.Add(folderPath);
@@ -51,6 +53,37 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             foreach (var path in folderPaths)
             {
                 var result = WithSqlFolder(path);
+                if (result.IsTorn)
+                    return result;
+            }
+            return Ritual<RuneMigrator>.Flow(this);
+        }
+
+        /// <summary>
+        /// Registers a folder of .sql files (CREATE OR REPLACE FUNCTION, CREATE OR REPLACE VIEW, etc.)
+        /// that are applied without doing diffs, since I am too lazy to really work that out.
+        /// </summary>
+        public Ritual<RuneMigrator> WithFunctionsFolder(string folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+                return Ritual<RuneMigrator>.Tear("Functions folder path cannot be empty");
+
+            if (!Directory.Exists(folderPath))
+                return Ritual<RuneMigrator>.Tear($"Functions folder not found: {folderPath}");
+
+            var sqlFiles = GetSqlFiles(folderPath);
+            if (sqlFiles.Count == 0)
+                return Ritual<RuneMigrator>.Tear($"No .sql files found in: {folderPath}");
+
+            _functionFolders.Add(folderPath);
+            return Ritual<RuneMigrator>.Flow(this);
+        }
+
+        public Ritual<RuneMigrator> WithFunctionsFolders(IEnumerable<string> folderPaths)
+        {
+            foreach (var path in folderPaths)
+            {
+                var result = WithFunctionsFolder(path);
                 if (result.IsTorn)
                     return result;
             }
@@ -89,6 +122,12 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 foreach (var folder in _sqlFolders)
                 {
                     var result = await DeployFolderAsync(folder);
+                    results.Add(result);
+                }
+
+                foreach (var folder in _functionFolders)
+                {
+                    var result = await DeployFunctionsFolderAsync(folder);
                     results.Add(result);
                 }
 
@@ -137,6 +176,22 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                     generatedFiles.Add(fileName);
                 }
 
+                foreach (var folder in _functionFolders)
+                {
+                    var combinedSql = await CombineSqlFolderAsync(folder);
+
+                    if (string.IsNullOrWhiteSpace(combinedSql))
+                        continue;
+
+                    var fileName = GenerateScriptFileName(folder);
+                    var filePath = Path.Combine(outputFolder, fileName);
+                    await File.WriteAllTextAsync(filePath, combinedSql, Encoding.UTF8);
+
+                    var info = new FileInfo(filePath);
+                    totalSize += info.Length;
+                    generatedFiles.Add(fileName);
+                }
+
                 return new ScriptGenerationResult
                 {
                     OutputFolder = outputFolder,
@@ -158,8 +213,8 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             if (string.IsNullOrWhiteSpace(_connectionString))
                 throw new InvalidOperationException("Connection string must be configured via WithConnectionString()");
 
-            if (_sqlFolders.Count == 0)
-                throw new InvalidOperationException("At least one SQL folder must be registered via WithSqlFolder()");
+            if (_sqlFolders.Count == 0 && _functionFolders.Count == 0)
+                throw new InvalidOperationException("At least one SQL folder must be registered via WithSqlFolder() or WithFunctionsFolder()");
         }
 
         private async Task<SchemaDeploymentResult> DeployFolderAsync(string folder)
@@ -185,6 +240,68 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         }
 
         /// <summary>
+        /// Applies function/view definition files directly against the target database,
+        /// in file order, wrapped in a single transaction. CREATE OR REPLACE objects are idempotent.
+        /// </summary>
+        private async Task<SchemaDeploymentResult> DeployFunctionsFolderAsync(string folder)
+        {
+            var start = DateTime.UtcNow;
+
+            var sqlFiles = GetSqlFiles(folder, true);
+
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync();
+            await using var transaction = await conn.BeginTransactionAsync();
+
+            var appliedAny = false;
+            foreach (var file in sqlFiles)
+            {
+                var sql = await File.ReadAllTextAsync(file);
+                if (string.IsNullOrWhiteSpace(sql)) continue;
+
+                await using var cmd = conn.CreateCommand();
+                cmd.Transaction = transaction;
+                cmd.CommandText = sql;
+
+                try
+                {
+                    await cmd.ExecuteNonQueryAsync();
+                    appliedAny = true;
+                }
+                catch (NpgsqlException ex)
+                {
+                    throw new InvalidOperationException(
+                        $"Failed to apply function/view definitions from '{Path.GetFileName(file)}': {ex.Message}", ex);
+                }
+            }
+
+            await transaction.CommitAsync();
+
+            return new SchemaDeploymentResult
+            {
+                FolderPath = folder,
+                Duration = DateTime.UtcNow - start,
+                ChangesApplied = appliedAny
+            };
+        }
+
+        private static async Task<string> CombineSqlFolderAsync(string folder)
+        {
+            var sqlFiles = GetSqlFiles(folder, true);
+
+            var sb = new StringBuilder();
+            foreach (var file in sqlFiles)
+            {
+                var sql = await File.ReadAllTextAsync(file);
+                if (string.IsNullOrWhiteSpace(sql)) continue;
+                sb.AppendLine(sql.Trim());
+                sb.AppendLine();
+            }
+
+            return sb.ToString().Trim();
+        }
+
+        /// <summary>
         /// Core shadow-DB diff logic:
         ///   1. Spin up a temporary PostgreSQL container
         ///   2. Apply the desired .sql files to it
@@ -199,8 +316,8 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             await using var targetConn = new NpgsqlConnection(_connectionString);
             await targetConn.OpenAsync();
 
-            var shadowSchema = await shadow.ReadSchemaAsync();
-            var targetSchema = await PostgresSchemaReader.ReadAsync(targetConn);
+            var shadowSchema = await shadow.ReadSchemaAsync(_options);
+            var targetSchema = await PostgresSchemaReader.ReadAsync(targetConn, _options);
 
             var differ = new SchemaDiffer(_options);
             return differ.GenerateMigration(shadowSchema, targetSchema);
@@ -256,6 +373,16 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             var folderName = new DirectoryInfo(folderPath).Name;
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmssffff");
             return $"{timestamp}_{folderName}.sql";
+        }
+
+        private static List<string> GetSqlFiles(string folder, bool ordered = false)
+        {
+            var sqlFiles = Directory.GetFiles(folder, "*.sql", SearchOption.AllDirectories);
+
+            if (!ordered)
+                return [.. sqlFiles];
+
+            return [.. sqlFiles.OrderBy(f => f)];
         }
 
         #endregion Helpers

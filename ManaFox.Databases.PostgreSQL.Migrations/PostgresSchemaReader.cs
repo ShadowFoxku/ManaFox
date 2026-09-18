@@ -8,13 +8,17 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
     /// </summary>
     internal static class PostgresSchemaReader
     {
-        public static async Task<DatabaseSchema> ReadAsync(NpgsqlConnection conn)
+        public static async Task<DatabaseSchema> ReadAsync(NpgsqlConnection conn, MigratorOptions? options = null)
         {
+            var excludeSchemas = options?.ExcludeSchemas ?? [];
             var schema = new DatabaseSchema();
 
-            schema.Tables.AddRange(await ReadTablesAsync(conn));
-            schema.Indexes.AddRange(await ReadIndexesAsync(conn));
-            schema.ForeignKeys.AddRange(await ReadForeignKeysAsync(conn));
+            schema.Tables.AddRange((await ReadTablesAsync(conn))
+                .Where(t => !excludeSchemas.Contains(t.Schema, StringComparer.OrdinalIgnoreCase)));
+            schema.Indexes.AddRange((await ReadIndexesAsync(conn))
+                .Where(i => !excludeSchemas.Contains(i.TableSchema, StringComparer.OrdinalIgnoreCase)));
+            schema.ForeignKeys.AddRange((await ReadForeignKeysAsync(conn))
+                .Where(f => !excludeSchemas.Contains(f.TableSchema, StringComparer.OrdinalIgnoreCase)));
 
             return schema;
         }
@@ -27,22 +31,31 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = """
-                    SELECT table_schema, table_name
-                    FROM information_schema.tables
-                    WHERE table_type = 'BASE TABLE'
-                      AND table_schema NOT IN ('pg_catalog', 'information_schema')
-                    ORDER BY table_schema, table_name
+                    SELECT table_schema, table_name, column_name, data_type,
+                           is_nullable, column_default, ordinal_position,
+                           character_maximum_length, numeric_precision, numeric_scale
+                    FROM information_schema.columns
+                    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                    ORDER BY table_schema, table_name, ordinal_position
                     """;
 
                 await using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    var t = new TableSchema
+                    var fullName = $"{reader.GetString(0)}.{reader.GetString(1)}";
+                    if (!tables.TryGetValue(fullName, out var table)) continue;
+
+                    table.Columns.Add(new ColumnSchema
                     {
-                        Schema = reader.GetString(0),
-                        Name = reader.GetString(1)
-                    };
-                    tables[t.FullName] = t;
+                        Name = reader.GetString(2),
+                        DataType = reader.GetString(3),
+                        IsNullable = reader.GetString(4) == "YES",
+                        Default = reader.IsDBNull(5) ? null : reader.GetString(5),
+                        OrdinalPosition = reader.GetInt32(6),
+                        CharacterMaxLength = reader.IsDBNull(7) ? null : reader.GetInt32(7),
+                        NumericPrecision = reader.IsDBNull(8) ? null : reader.GetInt32(8),
+                        NumericScale = reader.IsDBNull(9) ? null : reader.GetInt32(9)
+                    });
                 }
             }
 
