@@ -27,7 +27,6 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         {
             var tables = new Dictionary<string, TableSchema>();
 
-            // Tables
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = """
@@ -42,8 +41,15 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 await using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
                 {
-                    var fullName = $"{reader.GetString(0)}.{reader.GetString(1)}";
-                    if (!tables.TryGetValue(fullName, out var table)) continue;
+                    var tableSchema = reader.GetString(0);
+                    var tableName = reader.GetString(1);
+                    var fullName = $"{tableSchema}.{tableName}";
+
+                    if (!tables.TryGetValue(fullName, out var table))
+                    {
+                        table = new TableSchema { Schema = tableSchema, Name = tableName };
+                        tables[fullName] = table;
+                    }
 
                     table.Columns.Add(new ColumnSchema
                     {
@@ -59,35 +65,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 }
             }
 
-            // Columns
-            await using (var cmd = conn.CreateCommand())
-            {
-                cmd.CommandText = """
-                    SELECT table_schema, table_name, column_name, data_type,
-                           is_nullable, column_default, ordinal_position
-                    FROM information_schema.columns
-                    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-                    ORDER BY table_schema, table_name, ordinal_position
-                    """;
-
-                await using var reader = await cmd.ExecuteReaderAsync();
-                while (await reader.ReadAsync())
-                {
-                    var fullName = $"{reader.GetString(0)}.{reader.GetString(1)}";
-                    if (!tables.TryGetValue(fullName, out var table)) continue;
-
-                    table.Columns.Add(new ColumnSchema
-                    {
-                        Name = reader.GetString(2),
-                        DataType = reader.GetString(3),
-                        IsNullable = reader.GetString(4) == "YES",
-                        Default = reader.IsDBNull(5) ? null : reader.GetString(5),
-                        OrdinalPosition = reader.GetInt32(6)
-                    });
-                }
-            }
-
-            // Primary keys
+            // Primary keys — unchanged, just needs `tables` to actually be populated now
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = """
