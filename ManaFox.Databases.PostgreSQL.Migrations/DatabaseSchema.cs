@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace ManaFox.Databases.PostgreSQL.Migrations
 {
     /// <summary>
@@ -31,6 +33,21 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         public int? CharacterMaxLength { get; init; }
         public int? NumericPrecision { get; init; }
         public int? NumericScale { get; init; }
+
+        public override string ToString()
+        {
+            string? nString = null;
+            if (NumericPrecision.HasValue && !NumericScale.HasValue)
+                nString = $"[PRECISION ({NumericPrecision})]";
+            else if  (NumericPrecision.HasValue && NumericScale.HasValue)
+                nString = $"[PRECISION ({NumericPrecision}, {NumericScale})]";
+            
+            return
+            $"Column: {Name} ({DataType}) {(IsNullable ? "" : "NOT ")} NULL" +
+                $"{(Default != null ? $" [DEFAULT {Default}]" : "")}" +
+                $"{(CharacterMaxLength != null ? "[CMAX {CharacterMaxLength}" : "")}" +
+                $"{nString ?? ""}";
+        }
     }
 
     internal class IndexSchema

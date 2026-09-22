@@ -1,9 +1,11 @@
+using Microsoft.Extensions.Logging;
+
 namespace ManaFox.Databases.PostgreSQL.Migrations
 {
     /// <summary>
     /// Controls the behaviour of schema diffing and deployment.
     /// </summary>
-    public class MigratorOptions
+    public record MigratorOptions
     {
         /// <summary>
         /// When true, tables/columns/indexes present in the target DB but absent
@@ -22,6 +24,9 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         /// </summary>
         public IReadOnlyList<string> ExcludeSchemas { get; init; } = [];
 
+        public ILogger? Logger  { get; init; }
+        
         public static MigratorOptions Default => new();
+        
     }
 }

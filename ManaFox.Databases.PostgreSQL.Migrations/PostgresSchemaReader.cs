@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace ManaFox.Databases.PostgreSQL.Migrations
@@ -19,7 +20,6 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 .Where(i => !excludeSchemas.Contains(i.TableSchema, StringComparer.OrdinalIgnoreCase)));
             schema.ForeignKeys.AddRange((await ReadForeignKeysAsync(conn))
                 .Where(f => !excludeSchemas.Contains(f.TableSchema, StringComparer.OrdinalIgnoreCase)));
-
             return schema;
         }
 

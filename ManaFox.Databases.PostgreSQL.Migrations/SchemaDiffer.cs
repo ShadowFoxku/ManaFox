@@ -1,4 +1,5 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace ManaFox.Databases.PostgreSQL.Migrations
 {
@@ -63,7 +64,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
         }
 
-        private static void AppendCreateTable(StringBuilder sb, TableSchema table)
+        private void AppendCreateTable(StringBuilder sb, TableSchema table)
         {
             sb.AppendLine($"CREATE TABLE IF NOT EXISTS \"{table.Schema}\".\"{table.Name}\" (");
 
@@ -212,7 +213,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
         #region Helpers
 
-        private static string FormatColumnDefinition(ColumnSchema col)
+        private string FormatColumnDefinition(ColumnSchema col)
         {
             var sb = new StringBuilder();
             sb.Append($"\"{col.Name}\" {BuildFullDataType(col)}");
@@ -231,8 +232,9 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             "numeric", "decimal"
         };
 
-        private static string BuildFullDataType(ColumnSchema col)
+        private string BuildFullDataType(ColumnSchema col)
         {
+            _options.Logger?.LogTrace($"Column full data type being built for: {col}");
             if (col.CharacterMaxLength is int len)
                 return $"{col.DataType}({len})";
 

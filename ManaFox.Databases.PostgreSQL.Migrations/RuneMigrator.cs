@@ -1,7 +1,7 @@
 using ManaFox.Core.Flow;
 using Npgsql;
-using Org.BouncyCastle.Asn1.X509;
 using System.Text;
+using Microsoft.Extensions.Logging;
 
 namespace ManaFox.Databases.PostgreSQL.Migrations
 {
@@ -93,6 +93,12 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         public Ritual<RuneMigrator> CreateDatabaseIfNotExists(bool create = true)
         {
             _createIfNotExists = create;
+            return Ritual<RuneMigrator>.Flow(this);
+        }
+
+        public Ritual<RuneMigrator> WithLogger(ILogger logger)
+        {
+            _options = _options with { Logger = logger };
             return Ritual<RuneMigrator>.Flow(this);
         }
 
