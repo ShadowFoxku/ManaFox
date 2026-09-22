@@ -226,12 +226,17 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             return sb.ToString();
         }
 
+        private static readonly HashSet<string> TypesWithPrecisionScale = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "numeric", "decimal"
+        };
+
         private static string BuildFullDataType(ColumnSchema col)
         {
             if (col.CharacterMaxLength is int len)
                 return $"{col.DataType}({len})";
 
-            if (col.NumericPrecision is int precision)
+            if (TypesWithPrecisionScale.Contains(col.DataType) && col.NumericPrecision is int precision)
                 return col.NumericScale is int scale
                     ? $"{col.DataType}({precision},{scale})"
                     : $"{col.DataType}({precision})";
