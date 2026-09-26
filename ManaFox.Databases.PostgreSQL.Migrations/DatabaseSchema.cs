@@ -38,14 +38,14 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         {
             string? nString = null;
             if (NumericPrecision.HasValue && !NumericScale.HasValue)
-                nString = $"[PRECISION ({NumericPrecision})]";
+                nString = $" [PRECISION ({NumericPrecision})]";
             else if  (NumericPrecision.HasValue && NumericScale.HasValue)
-                nString = $"[PRECISION ({NumericPrecision}, {NumericScale})]";
+                nString = $" [PRECISION ({NumericPrecision}, {NumericScale})]";
             
             return
-            $"Column: {Name} ({DataType}) {(IsNullable ? "" : "NOT ")} NULL" +
+            $"Column: {Name} ({DataType}) {(IsNullable ? "" : "NOT")} NULL" +
                 $"{(Default != null ? $" [DEFAULT {Default}]" : "")}" +
-                $"{(CharacterMaxLength != null ? "[CMAX {CharacterMaxLength}" : "")}" +
+                $"{(CharacterMaxLength != null ? " [CMAX {CharacterMaxLength}]" : "")}" +
                 $"{nString ?? ""}";
         }
     }

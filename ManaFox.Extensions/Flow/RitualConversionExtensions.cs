@@ -31,5 +31,18 @@ namespace ManaFox.Extensions.Flow
         /// awaiting and then calling <see cref="Flatten{T}"/>.
         /// </summary>
         public static async Task<Ritual<T>> FlattenAsync<T>(this Task<Ritual<Ritual<T>>> nestedTask) => (await nestedTask).Flatten();
+        
+        public static async Task<Ritual<(T1, T2)>> WeaveAsync<T1, T2>(this Task<Ritual<T1>> ritual1, Task<Ritual<T2>> ritual2)
+        {
+            await Task.WhenAll(ritual1, ritual2);
+
+            var r1 = ritual1.Result;
+            var r2 = ritual2.Result;
+
+            if (r1.IsTorn) return Ritual<(T1, T2)>.Tear(r1.GetTear()!);
+            if (r2.IsTorn) return Ritual<(T1, T2)>.Tear(r2.GetTear()!);
+
+            return Ritual<(T1, T2)>.Flow((r1.GetValue()!, r2.GetValue()!));
+        }
     }
 }
