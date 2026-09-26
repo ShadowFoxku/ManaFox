@@ -34,12 +34,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
             return new ShadowDatabase(container, conn);
         }
-
-        /// <summary>
-        /// Applies all .sql files in the folder to the shadow DB in alphabetical order.
-        /// Naming your files with a numeric prefix (e.g. 01_tables.sql, 02_indexes.sql)
-        /// gives you deterministic ordering.
-        /// </summary>
+        
         public async Task ApplySqlFolderAsync(string folderPath)
         {
             var sqlFiles = Directory
@@ -47,24 +42,27 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 .OrderBy(f => f)
                 .ToList();
 
-            foreach (var file in sqlFiles)
+            var allStatements = await SqlBatchExecutor.LoadStatementsAsync(sqlFiles);
+
+            var tableStatements = new List<(string Source, string Sql)>();
+            var deferredStatements = new List<(string Source, string Sql)>(); // table references
+
+            foreach (var (source, sql) in allStatements)
             {
-                var sql = await File.ReadAllTextAsync(file);
-                if (string.IsNullOrWhiteSpace(sql)) continue;
-
-                await using var cmd = _connection.CreateCommand();
-                cmd.CommandText = sql;
-
-                try
+                if (TableSqlSplitter.LooksLikeCreateTable(sql))
                 {
-                    await cmd.ExecuteNonQueryAsync();
+                    var (tableSql, constraints) = TableSqlSplitter.ExtractForeignKeys(sql);
+                    tableStatements.Add((source, tableSql));
+                    deferredStatements.AddRange(constraints.Select(c => (source, c)));
                 }
-                catch (NpgsqlException ex)
+                else
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to apply shadow schema from '{Path.GetFileName(file)}': {ex.Message}", ex);
+                    deferredStatements.Add((source, sql));
                 }
             }
+
+            await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(_connection, tableStatements);
+            await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(_connection, deferredStatements);
         }
 
         public async Task<DatabaseSchema> ReadSchemaAsync(MigratorOptions? options = null)

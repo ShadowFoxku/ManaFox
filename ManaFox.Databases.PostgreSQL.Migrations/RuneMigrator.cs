@@ -232,9 +232,12 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             {
                 await using var conn = new NpgsqlConnection(_connectionString);
                 await conn.OpenAsync();
-                await using var cmd = conn.CreateCommand();
-                cmd.CommandText = migrationSql;
-                await cmd.ExecuteNonQueryAsync();
+
+                var statements = SqlBatchExecutor.SplitStatements(migrationSql)
+                    .Select(s => ("generated diff", s))
+                    .ToList();
+
+                await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements);
             }
 
             return new SchemaDeploymentResult
@@ -254,32 +257,13 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             var start = DateTime.UtcNow;
 
             var sqlFiles = GetSqlFiles(folder, true);
+            var statements = await SqlBatchExecutor.LoadStatementsAsync(sqlFiles);
 
             await using var conn = new NpgsqlConnection(_connectionString);
             await conn.OpenAsync();
             await using var transaction = await conn.BeginTransactionAsync();
 
-            var appliedAny = false;
-            foreach (var file in sqlFiles)
-            {
-                var sql = await File.ReadAllTextAsync(file);
-                if (string.IsNullOrWhiteSpace(sql)) continue;
-
-                await using var cmd = conn.CreateCommand();
-                cmd.Transaction = transaction;
-                cmd.CommandText = sql;
-
-                try
-                {
-                    await cmd.ExecuteNonQueryAsync();
-                    appliedAny = true;
-                }
-                catch (NpgsqlException ex)
-                {
-                    throw new InvalidOperationException(
-                        $"Failed to apply function/view definitions from '{Path.GetFileName(file)}': {ex.Message}", ex);
-                }
-            }
+            await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements, transaction);
 
             await transaction.CommitAsync();
 
@@ -287,7 +271,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             {
                 FolderPath = folder,
                 Duration = DateTime.UtcNow - start,
-                ChangesApplied = appliedAny
+                ChangesApplied = statements.Count > 0
             };
         }
 
