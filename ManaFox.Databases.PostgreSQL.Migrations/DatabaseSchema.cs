@@ -33,6 +33,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         public int? CharacterMaxLength { get; init; }
         public int? NumericPrecision { get; init; }
         public int? NumericScale { get; init; }
+        public string? IdentityGeneration { get; init; }
 
         public override string ToString()
         {

@@ -30,13 +30,14 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = """
-                    SELECT table_schema, table_name, column_name, data_type,
-                           is_nullable, column_default, ordinal_position,
-                           character_maximum_length, numeric_precision, numeric_scale
-                    FROM information_schema.columns
-                    WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
-                    ORDER BY table_schema, table_name, ordinal_position
-                    """;
+                  SELECT table_schema, table_name, column_name, data_type,
+                         is_nullable, column_default, ordinal_position,
+                         character_maximum_length, numeric_precision, numeric_scale,
+                         is_identity, identity_generation
+                  FROM information_schema.columns
+                  WHERE table_schema NOT IN ('pg_catalog', 'information_schema')
+                  ORDER BY table_schema, table_name, ordinal_position
+                  """;
 
                 await using var reader = await cmd.ExecuteReaderAsync();
                 while (await reader.ReadAsync())
@@ -60,7 +61,10 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                         OrdinalPosition = reader.GetInt32(6),
                         CharacterMaxLength = reader.IsDBNull(7) ? null : reader.GetInt32(7),
                         NumericPrecision = reader.IsDBNull(8) ? null : reader.GetInt32(8),
-                        NumericScale = reader.IsDBNull(9) ? null : reader.GetInt32(9)
+                        NumericScale = reader.IsDBNull(9) ? null : reader.GetInt32(9),
+                        IdentityGeneration = reader.GetString(10) == "YES"
+                            ? (reader.IsDBNull(11) ? "ALWAYS" : reader.GetString(11))
+                            : null
                     });
                 }
             }

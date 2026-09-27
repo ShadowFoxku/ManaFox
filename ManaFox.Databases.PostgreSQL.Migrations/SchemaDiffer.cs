@@ -217,7 +217,9 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             var sb = new StringBuilder();
             sb.Append($"\"{col.Name}\" {BuildFullDataType(col)}");
 
-            if (!string.IsNullOrWhiteSpace(col.Default))
+            if (!string.IsNullOrWhiteSpace(col.IdentityGeneration))
+                sb.Append($" GENERATED {col.IdentityGeneration} AS IDENTITY");
+            else if (!string.IsNullOrWhiteSpace(col.Default))
                 sb.Append($" DEFAULT {col.Default}");
 
             if (!col.IsNullable)
