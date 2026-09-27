@@ -34,18 +34,19 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
             return new ShadowDatabase(container, conn);
         }
-        
-        public async Task ApplySqlFolderAsync(string folderPath)
+
+        public async Task ApplySqlFoldersAsync(IEnumerable<string> folderPaths)
         {
-            var sqlFiles = Directory
-                .GetFiles(folderPath, "*.sql", SearchOption.AllDirectories)
-                .OrderBy(f => f)
+            var sqlFiles = folderPaths
+                .SelectMany(folder => Directory
+                    .GetFiles(folder, "*.sql", SearchOption.AllDirectories)
+                    .OrderBy(f => f))
                 .ToList();
 
             var allStatements = await SqlBatchExecutor.LoadStatementsAsync(sqlFiles);
 
             var tableStatements = new List<(string Source, string Sql)>();
-            var deferredStatements = new List<(string Source, string Sql)>(); // table references
+            var deferredStatements = new List<(string Source, string Sql)>(); // FKs + everything else
 
             foreach (var (source, sql) in allStatements)
             {
@@ -61,6 +62,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 }
             }
 
+            // ALL tables from every folder first, then ALL deferred statements from every folder.
             await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(_connection, tableStatements);
             await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(_connection, deferredStatements);
         }

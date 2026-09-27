@@ -9,7 +9,6 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
     /// </summary>
     internal class SchemaDiffer(MigratorOptions options)
     {
-        private readonly MigratorOptions _options = options; 
         private readonly List<string> _destructiveOperations = [];
 
         public string GenerateMigration(DatabaseSchema desired, DatabaseSchema current)
@@ -21,8 +20,8 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             AppendIndexChanges(sb, desired, current);
             AppendForeignKeyChanges(sb, desired, current);
 
-            if (_options.BlockOnPossibleDataLoss && _destructiveOperations.Count > 0)
-                throw new InvalidOperationException("Migration blocked — the following operations may cause data loss:\n" + string.Join('\n', _destructiveOperations));
+            if (options.BlockOnPossibleDataLoss && _destructiveOperations.Count > 0)
+                throw new InvalidOperationException("Migration blocked. The following operations may cause data loss:\n" + string.Join('\n', _destructiveOperations));
 
             return sb.ToString().Trim();
         }
@@ -50,7 +49,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 AppendColumnChanges(sb, desiredTable, currentTable);
             }
 
-            if (_options.DropObjectsNotInSource)
+            if (options.DropObjectsNotInSource)
             {
                 foreach (var table in current.Tables)
                 {
@@ -115,8 +114,8 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                 }
             }
 
-            // Dropped columns — only if configured
-            if (_options.DropObjectsNotInSource)
+            // Dropped columns
+            if (options.DropObjectsNotInSource)
             {
                 foreach (var col in current.Columns)
                 {
@@ -153,7 +152,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
 
             // Dropped indexes
-            if (_options.DropObjectsNotInSource)
+            if (options.DropObjectsNotInSource)
             {
                 foreach (var idx in current.Indexes)
                 {
@@ -191,7 +190,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             }
 
             // Dropped foreign keys
-            if (_options.DropObjectsNotInSource)
+            if (options.DropObjectsNotInSource)
             {
                 foreach (var fk in current.ForeignKeys)
                 {
@@ -234,7 +233,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
         private string BuildFullDataType(ColumnSchema col)
         {
-            _options.Logger?.LogTrace($"Column full data type being built for: {col}");
+            options.Logger?.LogTrace($"Column full data type being built for: {col}");
             if (col.CharacterMaxLength is int len)
                 return $"{col.DataType}({len})";
 

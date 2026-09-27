@@ -111,7 +111,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
         /// <summary>
         /// Applies all registered SQL definition folders to the target database.
         /// Uses a shadow DB to diff the desired schema against the live DB,
-        /// then applies only the delta.
+        /// then applies only the delta. Function/view folders are applied directly.
         /// </summary>
         public async Task<Ritual<MigrationResult>> Deploy()
         {
@@ -125,16 +125,20 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
 
                 await EnsureDatabaseExistsAsync(databaseName);
 
-                foreach (var folder in _sqlFolders)
+                if (_sqlFolders.Count > 0)
                 {
-                    var result = await DeployFolderAsync(folder);
-                    results.Add(result);
+                    results.Add(await RunStepAsync(
+                        "Tables",
+                        BuildTablesMigrationSqlAsync,
+                        sql => ExecuteSqlAsync(sql, useTransaction: false)));
                 }
 
-                foreach (var folder in _functionFolders)
+                if (_functionFolders.Count > 0)
                 {
-                    var result = await DeployFunctionsFolderAsync(folder);
-                    results.Add(result);
+                    results.Add(await RunStepAsync(
+                        "Functions",
+                        BuildFunctionsSqlAsync,
+                        sql => ExecuteSqlAsync(sql, useTransaction: true)));
                 }
 
                 return new MigrationResult
@@ -160,42 +164,23 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                     throw new ArgumentException("Output folder cannot be empty", nameof(outputFolder));
 
                 var startTime = DateTime.UtcNow;
-                var databaseName = ExtractDatabaseName(_connectionString);
                 Directory.CreateDirectory(outputFolder);
 
                 var generatedFiles = new List<string>();
                 long totalSize = 0;
 
-                foreach (var folder in _sqlFolders)
+                if (_sqlFolders.Count > 0)
                 {
-                    var migrationSql = await GenerateMigrationSqlAsync(folder);
-
-                    if (string.IsNullOrWhiteSpace(migrationSql))
-                        continue;
-
-                    var fileName = GenerateScriptFileName(folder);
-                    var filePath = Path.Combine(outputFolder, fileName);
-                    await File.WriteAllTextAsync(filePath, migrationSql, Encoding.UTF8);
-
-                    var info = new FileInfo(filePath);
-                    totalSize += info.Length;
-                    generatedFiles.Add(fileName);
+                    var sql = await BuildTablesMigrationSqlAsync();
+                    if (!string.IsNullOrWhiteSpace(sql))
+                        totalSize += await WriteScriptAsync(outputFolder, "tables", sql, generatedFiles);
                 }
 
-                foreach (var folder in _functionFolders)
+                if (_functionFolders.Count > 0)
                 {
-                    var combinedSql = await CombineSqlFolderAsync(folder);
-
-                    if (string.IsNullOrWhiteSpace(combinedSql))
-                        continue;
-
-                    var fileName = GenerateScriptFileName(folder);
-                    var filePath = Path.Combine(outputFolder, fileName);
-                    await File.WriteAllTextAsync(filePath, combinedSql, Encoding.UTF8);
-
-                    var info = new FileInfo(filePath);
-                    totalSize += info.Length;
-                    generatedFiles.Add(fileName);
+                    var sql = await BuildFunctionsSqlAsync();
+                    if (!string.IsNullOrWhiteSpace(sql))
+                        totalSize += await WriteScriptAsync(outputFolder, "functions", sql, generatedFiles);
                 }
 
                 return new ScriptGenerationResult
@@ -206,78 +191,31 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                     TotalSize = totalSize,
                     Duration = DateTime.UtcNow - startTime,
                     Summary = generatedFiles.Count == 0
-                        ? "No schema differences detected across all folders."
+                        ? "No schema differences detected."
                         : $"Generated {generatedFiles.Count} migration script(s)."
                 };
             });
         }
 
-        #region Helpers
-
-        private void ValidateConfiguration()
+        #region Build
+        private async Task<string> BuildTablesMigrationSqlAsync()
         {
-            if (string.IsNullOrWhiteSpace(_connectionString))
-                throw new InvalidOperationException("Connection string must be configured via WithConnectionString()");
+            await using var shadow = await ShadowDatabase.CreateAsync();
+            await shadow.ApplySqlFoldersAsync(_sqlFolders);
 
-            if (_sqlFolders.Count == 0 && _functionFolders.Count == 0)
-                throw new InvalidOperationException("At least one SQL folder must be registered via WithSqlFolder() or WithFunctionsFolder()");
+            await using var targetConn = new NpgsqlConnection(_connectionString);
+            await targetConn.OpenAsync();
+
+            var shadowSchema = await shadow.ReadSchemaAsync(_options);
+            var targetSchema = await PostgresSchemaReader.ReadAsync(targetConn, _options);
+
+            var differ = new SchemaDiffer(_options);
+            return differ.GenerateMigration(shadowSchema, targetSchema);
         }
-
-        private async Task<SchemaDeploymentResult> DeployFolderAsync(string folder)
+        
+        private async Task<string> BuildFunctionsSqlAsync()
         {
-            var start = DateTime.UtcNow;
-            var migrationSql = await GenerateMigrationSqlAsync(folder);
-
-            if (!string.IsNullOrWhiteSpace(migrationSql))
-            {
-                await using var conn = new NpgsqlConnection(_connectionString);
-                await conn.OpenAsync();
-
-                var statements = SqlBatchExecutor.SplitStatements(migrationSql)
-                    .Select(s => ("generated diff", s))
-                    .ToList();
-
-                await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements);
-            }
-
-            return new SchemaDeploymentResult
-            {
-                FolderPath = folder,
-                Duration = DateTime.UtcNow - start,
-                ChangesApplied = !string.IsNullOrWhiteSpace(migrationSql)
-            };
-        }
-
-        /// <summary>
-        /// Applies function/view definition files directly against the target database,
-        /// in file order, wrapped in a single transaction. CREATE OR REPLACE objects are idempotent.
-        /// </summary>
-        private async Task<SchemaDeploymentResult> DeployFunctionsFolderAsync(string folder)
-        {
-            var start = DateTime.UtcNow;
-
-            var sqlFiles = GetSqlFiles(folder, true);
-            var statements = await SqlBatchExecutor.LoadStatementsAsync(sqlFiles);
-
-            await using var conn = new NpgsqlConnection(_connectionString);
-            await conn.OpenAsync();
-            await using var transaction = await conn.BeginTransactionAsync();
-
-            await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements, transaction);
-
-            await transaction.CommitAsync();
-
-            return new SchemaDeploymentResult
-            {
-                FolderPath = folder,
-                Duration = DateTime.UtcNow - start,
-                ChangesApplied = statements.Count > 0
-            };
-        }
-
-        private static async Task<string> CombineSqlFolderAsync(string folder)
-        {
-            var sqlFiles = GetSqlFiles(folder, true);
+            var sqlFiles = _functionFolders.SelectMany(f => GetSqlFiles(f, true)).ToList();
 
             var sb = new StringBuilder();
             foreach (var file in sqlFiles)
@@ -291,26 +229,72 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             return sb.ToString().Trim();
         }
 
-        /// <summary>
-        /// Core shadow-DB diff logic:
-        ///   1. Spin up a temporary PostgreSQL container
-        ///   2. Apply the desired .sql files to it
-        ///   3. Diff its schema against the target DB via information_schema / pg_catalog
-        ///   4. Return the delta as executable SQL
-        /// </summary>
-        private async Task<string> GenerateMigrationSqlAsync(string folder)
+        #endregion
+
+        #region Apply
+
+        private static async Task<SchemaDeploymentResult> RunStepAsync(
+            string label,
+            Func<Task<string>> buildSql,
+            Func<string, Task> applySql)
         {
-            await using var shadow = await ShadowDatabase.CreateAsync();
-            await shadow.ApplySqlFolderAsync(folder);
+            var start = DateTime.UtcNow;
+            var sql = await buildSql();
 
-            await using var targetConn = new NpgsqlConnection(_connectionString);
-            await targetConn.OpenAsync();
+            if (!string.IsNullOrWhiteSpace(sql))
+                await applySql(sql);
 
-            var shadowSchema = await shadow.ReadSchemaAsync(_options);
-            var targetSchema = await PostgresSchemaReader.ReadAsync(targetConn, _options);
+            return new SchemaDeploymentResult
+            {
+                Label = label,
+                Duration = DateTime.UtcNow - start,
+                ChangesApplied = !string.IsNullOrWhiteSpace(sql)
+            };
+        }
 
-            var differ = new SchemaDiffer(_options);
-            return differ.GenerateMigration(shadowSchema, targetSchema);
+        private async Task ExecuteSqlAsync(string sql, bool useTransaction)
+        {
+            await using var conn = new NpgsqlConnection(_connectionString);
+            await conn.OpenAsync();
+
+            var statements = SqlBatchExecutor.SplitStatements(sql)
+                .Select(s => ("generated diff", s))
+                .ToList();
+
+            if (useTransaction)
+            {
+                await using var transaction = await conn.BeginTransactionAsync();
+                await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements, transaction);
+                await transaction.CommitAsync();
+            }
+            else
+            {
+                await SqlBatchExecutor.ExecuteWithDependencyRetryAsync(conn, statements);
+            }
+        }
+
+        private static async Task<long> WriteScriptAsync(
+            string outputFolder, string label, string sql, List<string> generatedFiles)
+        {
+            var fileName = GenerateScriptFileName(label);
+            var filePath = Path.Combine(outputFolder, fileName);
+            await File.WriteAllTextAsync(filePath, sql, Encoding.UTF8);
+
+            generatedFiles.Add(fileName);
+            return new FileInfo(filePath).Length;
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private void ValidateConfiguration()
+        {
+            if (string.IsNullOrWhiteSpace(_connectionString))
+                throw new InvalidOperationException("Connection string must be configured via WithConnectionString()");
+
+            if (_sqlFolders.Count == 0 && _functionFolders.Count == 0)
+                throw new InvalidOperationException("At least one SQL folder must be registered via WithSqlFolder() or WithFunctionsFolder()");
         }
 
         private async Task EnsureDatabaseExistsAsync(string databaseName)
@@ -322,7 +306,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             await using var conn = new NpgsqlConnection(masterConnString);
             await conn.OpenAsync();
 
-            // Check existence first — CREATE DATABASE can't be parameterised in PG
+            // Check existence first
             await using var checkCmd = conn.CreateCommand();
             checkCmd.CommandText = "SELECT 1 FROM pg_database WHERE datname = @db";
             checkCmd.Parameters.AddWithValue("db", databaseName);
@@ -358,11 +342,10 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
             return builder.ConnectionString;
         }
 
-        private static string GenerateScriptFileName(string folderPath)
+        private static string GenerateScriptFileName(string label)
         {
-            var folderName = new DirectoryInfo(folderPath).Name;
             var timestamp = DateTime.UtcNow.ToString("yyyyMMdd_HHmmssffff");
-            return $"{timestamp}_{folderName}.sql";
+            return $"{timestamp}_{label}.sql";
         }
 
         private static List<string> GetSqlFiles(string folder, bool ordered = false)

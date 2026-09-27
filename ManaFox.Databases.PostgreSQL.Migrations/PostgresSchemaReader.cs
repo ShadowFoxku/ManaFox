@@ -64,8 +64,7 @@ namespace ManaFox.Databases.PostgreSQL.Migrations
                     });
                 }
             }
-
-            // Primary keys — unchanged, just needs `tables` to actually be populated now
+            
             await using (var cmd = conn.CreateCommand())
             {
                 cmd.CommandText = """
