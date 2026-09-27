@@ -18,13 +18,14 @@ namespace ManaFox.Databases.Core.Base
         }
 
         public abstract Task BeginTransactionAsync(CancellationToken cancellationToken = default);
-        public abstract Task BeginTransactionAsync(string key, CancellationToken cancellationToken = default);
+        public abstract Task BeginTransactionAsync(string txnKey, CancellationToken cancellationToken = default);
+        public abstract Task BeginTransactionAsync(string txnKey, string dbKey, CancellationToken cancellationToken = default);
 
         public abstract Task CommitAsync(CancellationToken cancellationToken = default);
-        public abstract Task CommitAsync(string key, CancellationToken cancellationToken = default);
+        public abstract Task CommitAsync(string txnKey, CancellationToken cancellationToken = default);
 
         public abstract Task RollbackAsync(CancellationToken cancellationToken = default);
-        public abstract Task RollbackAsync(string key, CancellationToken cancellationToken = default);
+        public abstract Task RollbackAsync(string txnKey, CancellationToken cancellationToken = default);
 
         public async Task<Ritual<T>> RunInTransactionAsync<T>(string database, Func<Task<Ritual<T>>> operation)
         {

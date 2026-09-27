@@ -6,14 +6,14 @@ namespace ManaFox.Databases.TSQL
 {
     public class RuneReaderManager(IRuneReaderConfiguration config) : RuneReaderManagerBase(config), IRuneReaderManager
     {
-        private const string DefaultKey = "Default"; // Note, this is only used for transactions
+        private const string DefaultTransactionKey = "Default"; 
         private readonly Dictionary<string, TransactionContext> TransactionContexts = [];
 
         public override bool IsInTransaction => TransactionContexts.Values.Any(ctx => ctx.IsActive);
 
         private async Task<IRuneReader> CreateRuneReaderAsync(string? key = null, CancellationToken cancellationToken = default)
         {
-            if (TransactionContexts.TryGetValue(key ?? DefaultKey, out var context) && context.IsActive)
+            if (TransactionContexts.TryGetValue(key ?? DefaultTransactionKey, out var context) && context.IsActive)
             {
                 return new RuneReader(context.Connection, context.SqlTransaction);
             }
@@ -30,22 +30,25 @@ namespace ManaFox.Databases.TSQL
             => CreateRuneReaderAsync(key, cancellationToken);
 
         public override Task BeginTransactionAsync(CancellationToken cancellationToken = default) 
-            => BeginTransactionAsync(DefaultKey, cancellationToken);
+            => BeginTransactionAsync(DefaultTransactionKey, cancellationToken);
 
-        public override async Task BeginTransactionAsync(string key, CancellationToken cancellationToken = default)
+        public override Task BeginTransactionAsync(string txnKey, CancellationToken cancellationToken = default)
+            => BeginTransactionAsync(txnKey, null, cancellationToken);
+        
+        public override async Task BeginTransactionAsync(string txnKey, string dbKey, CancellationToken cancellationToken = default)
         {
-            if (TransactionContexts.TryGetValue(key, out var existingContext) && existingContext.IsActive)
+            if (TransactionContexts.TryGetValue(txnKey, out var existingContext) && existingContext.IsActive)
                 throw new InvalidOperationException("A transaction is already active. Call CommitAsync or RollbackAsync first.");
 
-            var conn = new SqlConnection(GetConnectionString(key));
+            var conn = new SqlConnection(GetConnectionString(dbKey));
             await conn.OpenAsync(cancellationToken);
             var sqlTransaction = await conn.BeginTransactionAsync(cancellationToken);
 
-            TransactionContexts[key] = new TransactionContext(conn, sqlTransaction);
+            TransactionContexts[txnKey] = new TransactionContext(conn, sqlTransaction);
         }
 
         public override Task CommitAsync(CancellationToken cancellationToken = default)
-            => CommitAsync(DefaultKey, cancellationToken);
+            => CommitAsync(DefaultTransactionKey, cancellationToken);
 
         public override async Task CommitAsync(string key, CancellationToken cancellationToken = default)
         {
@@ -70,7 +73,7 @@ namespace ManaFox.Databases.TSQL
         }
 
         public override Task RollbackAsync(CancellationToken cancellationToken = default)
-            => RollbackAsync(DefaultKey, cancellationToken);
+            => RollbackAsync(DefaultTransactionKey, cancellationToken);
 
         public override async Task RollbackAsync(string key, CancellationToken cancellationToken = default)
         {
