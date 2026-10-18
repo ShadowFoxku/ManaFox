@@ -93,14 +93,30 @@ namespace ManaFox.Databases.PostgreSQL
         {
             if (parameters is null) return;
 
-            foreach (var prop in parameters.GetType().GetProperties())
+            if (parameters is IEnumerable<KeyValuePair<string, object?>> dict)
             {
-                if (!ShouldMapProperty(prop, out var mapName)) continue;
+                foreach (var kvp in dict)
+                {
+                    Add(kvp.Key, kvp.Value);
+                }
+            }
+            else
+            {
+                foreach (var prop in parameters.GetType().GetProperties())
+                {
+                    if (!ShouldMapProperty(prop, out var mapName)) continue;
 
-                var val = prop.GetValue(parameters);
+                    var val = prop.GetValue(parameters);
+                    Add(mapName, val);
+                }
+            }
+
+            void Add(string name, object? value)
+            {
+                if (!name.StartsWith('@')) name = $"@{name}";
                 var parameter = command.CreateParameter();
-                parameter.ParameterName = $"@{mapName}";
-                parameter.Value = val ?? DBNull.Value;
+                parameter.ParameterName = name;
+                parameter.Value = value ?? DBNull.Value;
                 command.Parameters.Add(parameter);
             }
         }
