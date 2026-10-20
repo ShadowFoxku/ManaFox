@@ -43,6 +43,18 @@ public class SearchQueryBuilder<T>
         => WhereEquals<T>(col, value);
 
     public SearchQueryBuilder<T> WhereEquals<TTable>(Expression<Func<TTable, object?>> col, object? value)
+        => WhereEqualsInternal(col, value);
+
+    public SearchQueryBuilder<T> WhereEqualsIfNotNull(Expression<Func<T, object?>> col, object? value)
+        => WhereEqualsIfNotNull<T>(col, value);
+    
+    public SearchQueryBuilder<T> WhereEqualsIfNotNull<TTable>(Expression<Func<TTable, object?>> col, object? value)
+    {
+        if (value is null) return this;
+        return WhereEqualsInternal(col, value);
+    }
+
+    private SearchQueryBuilder<T> WhereEqualsInternal<TTable>(Expression<Func<TTable, object?>> col, object? value)
     {
         var colName = GetColumnRef(Columns.Ref(col));
 
