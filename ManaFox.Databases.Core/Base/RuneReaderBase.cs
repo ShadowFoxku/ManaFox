@@ -2,67 +2,84 @@ using ManaFox.Databases.Core.Attributes;
 using ManaFox.Databases.Core.Interfaces;
 using System.Data;
 using System.Reflection;
+using ManaFox.Databases.Core.QueryBuilders;
 
 namespace ManaFox.Databases.Core.Base
 {
     public abstract class RuneReaderBase : IRuneReader
     {
         public abstract Task CloseAsync();
+        public abstract ValueTask DisposeAsync();
+
+        #region Execute
         public abstract Task<int> ExecuteAsync(string commandText, CommandType commandType, object? parameters);
-        public abstract Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
+        
+        public virtual Task<int> ExecuteAsync(string commandText, CommandType commandType) 
+            => ExecuteAsync(commandText, commandType, null);
+
+        public Task<int> ExecuteAsync<T>(SearchQueryBuilder<T> query)
+            => ExecuteAsync(query.Build(), CommandType.Text, query.Parameters);
+
+        #endregion
+        
+        #region Single
         public abstract Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
-        public abstract Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
-
-        public virtual Task<int> ExecuteAsync(string commandText, CommandType commandType)
-        {
-            return ExecuteAsync(commandText, commandType, null);
-        }
-
-        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
-        {
-            return QueryMultipleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
-        }
-
-        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType) where T : new()
-        {
-            return QueryMultipleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
-        }
-
-        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
-        {
-            return QueryMultipleAsync(commandText, commandType, mapFunction, null);
-        }
-
+        public virtual Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
+            => QuerySingleAsync(commandText, commandType, mapFunction, null);
+        
         public virtual Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
-        {
-            return QuerySingleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
-        }
+            => QuerySingleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
 
         public virtual Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType) where T : new()
-        {
-            return QuerySingleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
-        }
+            => QuerySingleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
 
-        public virtual Task<T> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
-        {
-            return QuerySingleAsync(commandText, commandType, mapFunction, null);
-        }
-
-        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
-        {
-            return QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
-        }
-
-        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new()
-        {
-            return QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
-        }
-
+        public Task<T> QuerySingleAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new()
+            => QuerySingleAsync(query.Build(), CommandType.Text, mapFunction, query.Parameters);
+        
+        public Task<T> QuerySingleAsync<T>(SearchQueryBuilder<T> query) where T : new()
+            => QuerySingleAsync(query.Build(), CommandType.Text, ReadSingleDefaultMapping<T>, query.Parameters);
+        
+        #endregion
+        
+        #region Single or Default
+        public abstract Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
         public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
-        {
-            return QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, null);
-        }
+            => QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, null);
+        
+        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
+            => QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
+        
+        public virtual Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new()
+            => QuerySingleOrDefaultAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
+        
+        public Task<T> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new()
+            => QuerySingleOrDefaultAsync(query.Build(), CommandType.Text, mapFunction, query.Parameters);
+        
+        public Task<T> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query) where T : new()
+            => QuerySingleOrDefaultAsync(query.Build(), CommandType.Text, ReadSingleDefaultMapping<T>, query.Parameters);
 
+        #endregion
+        
+        #region Multiple
+        public abstract Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
+        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
+            => QueryMultipleAsync(commandText, commandType, mapFunction, null);
+        
+        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
+            => QueryMultipleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, parameters);
+        
+        public virtual Task<List<T>> QueryMultipleAsync<T>(string commandText, CommandType commandType) where T : new()
+            => QueryMultipleAsync(commandText, commandType, ReadSingleDefaultMapping<T>, null);
+
+        public Task<List<T>> QueryMultipleAsync<T>(SearchQueryBuilder<T> query) where T : new()
+            => QueryMultipleAsync(query.Build(), CommandType.Text, ReadSingleDefaultMapping<T>, query.Parameters);
+
+        public Task<List<T>> QueryMultipleAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new()
+            => QueryMultipleAsync(query.Build(), CommandType.Text, mapFunction, query.Parameters);
+        
+        #endregion
+        
+        #region Helpers
         public static T ReadSingleDefaultMapping<T>(IRowReader reader) where T : new()
         {
             if (typeof(T).IsPrimitive || typeof(T) == typeof(string))
@@ -85,7 +102,7 @@ namespace ManaFox.Databases.Core.Base
 
                 var value = reader[name];
                 var targetType = Nullable.GetUnderlyingType(prop.PropertyType) ?? prop.PropertyType;
-                if (value != null && value.GetType() != targetType)
+                if (value != DBNull.Value && value.GetType() != targetType)
                 {
                     if (TryConvert(value, targetType, out var converted))
                     {
@@ -104,36 +121,31 @@ namespace ManaFox.Databases.Core.Base
             return obj;
         }
 
-        public static bool TryConvert(object value, Type toType, out object? result)
+        private static bool TryConvert(object value, Type toType, out object? result)
         {
             result = null;
 
             // Handle DateTimeOffset
             if (toType == typeof(DateTimeOffset))
             {
-                if (value is DBNull || value is null)
+                switch (value)
                 {
-                    return true;
-                }
-
-                if (value is DateTime dateTime)
-                {
-                    result = new DateTimeOffset(dateTime);
-                    return true;
-                }
-
-                if (value is string dateString && DateTimeOffset.TryParse(dateString, out var offset))
-                {
-                    result = offset;
-                    return true;
+                    case DBNull or null:
+                        return true;
+                    case DateTime dateTime:
+                        result = new DateTimeOffset(dateTime);
+                        return true;
+                    case string dateString when DateTimeOffset.TryParse(dateString, out var offset):
+                        result = offset;
+                        return true;
                 }
             }
 
             // Handle Enum types
-            if (toType.IsEnum)
+            if (!toType.IsEnum) return false;
+            switch (value)
             {
-                if (value is string enumString)
-                {
+                case string enumString:
                     try
                     {
                         result = Enum.Parse(toType, enumString, ignoreCase: true);
@@ -143,9 +155,7 @@ namespace ManaFox.Databases.Core.Base
                     {
                         return false;
                     }
-                }
-                if (value is int or long or byte or sbyte or short or ushort or uint or ulong)
-                {
+                case int or long or byte or sbyte or short or ushort or uint or ulong:
                     try
                     {
                         result = Enum.ToObject(toType, value);
@@ -155,13 +165,12 @@ namespace ManaFox.Databases.Core.Base
                     {
                         return false;
                     }
-                }
+                default:
+                    return false;
             }
-
-            return false;
         }
 
-        public static bool ShouldMapProperty(PropertyInfo prop, out string mapAs)
+        protected static bool ShouldMapProperty(PropertyInfo prop, out string mapAs)
         {
             mapAs = prop.Name;
             var shouldIgnore = prop.GetCustomAttribute<IgnoreRuneAttribute>();
@@ -174,7 +183,6 @@ namespace ManaFox.Databases.Core.Base
 
             return true;
         }
-
-        public abstract ValueTask DisposeAsync();
+        #endregion
     }
 }
