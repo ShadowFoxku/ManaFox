@@ -148,6 +148,19 @@ public class SearchQueryBuilder<T>
         return sb.Append(';').ToString();
     }
 
+    public string BuildTotalCount(string countQuery)
+    {        
+        if (countQuery.Length == 0)
+            throw new ArgumentNullException(nameof(countQuery));
+
+        var sb = new StringBuilder(countQuery.TrimEnd().TrimEnd(';')).AppendLine();
+
+        if (_where.Count > 0)
+            sb.Append("WHERE ").AppendLine(string.Join("\nAND ", _where));
+
+        return sb.Append(';').ToString();
+    }
+
     private string GetColumnRef(ColumnRef c)
     {
         if (_aliases.TryGetValue(c.Table, out var alias))
