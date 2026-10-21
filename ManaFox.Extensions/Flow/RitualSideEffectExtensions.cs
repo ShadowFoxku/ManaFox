@@ -74,5 +74,13 @@ namespace ManaFox.Extensions.Flow
         public static async Task<Ritual<T>> ScryTearAsync<T>(
             this Task<Ritual<T>> ritualTask, Func<Tear, Task> action)
             => await (await ritualTask).ScryTearAsync(action);
+
+        /// <summary>
+        /// Await a ritual task, then peek at the tear for a side effect without altering the ritual.
+        /// If the ritual is flowing, <paramref name="action"/> is never invoked.
+        /// </summary>
+        public static async Task<Ritual<T>> ScryTearAsync<T>(
+            this Task<Ritual<T>> ritualTask, Action<Tear> action)
+            => (await ritualTask).ScryTear(action);
     }
 }

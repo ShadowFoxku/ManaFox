@@ -71,13 +71,18 @@ public class Ritual<T> : Either<Tear, T>
     // ───────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Execute an operation that might throw, capturing exceptions as Tears
+    /// Execute an operation that might throw, capturing exceptions as internal Tears.
+    /// A thrown <see cref="TearException"/> yields its own Tear.
     /// </summary>
     public static Ritual<T> Try(Func<T> operation)
     {
         try
         {
             return Flow(operation());
+        }
+        catch (TearException ex)
+        {
+            return Ritual<T>.Tear(ex.Tear);
         }
         catch (Exception ex)
         {
@@ -86,13 +91,18 @@ public class Ritual<T> : Either<Tear, T>
     }
 
     /// <summary>
-    /// Execute an async operation that might throw, capturing exceptions as Tears
+    /// Execute an async operation that might throw, capturing exceptions as internal Tears.
+    /// A thrown <see cref="TearException"/> yields its own Tear.
     /// </summary>
     public static async Task<Ritual<T>> TryAsync(Func<Task<T>> operation)
     {
         try
         {
             return Flow(await operation());
+        }
+        catch (TearException ex)
+        {
+            return Ritual<T>.Tear(ex.Tear);
         }
         catch (Exception ex)
         {

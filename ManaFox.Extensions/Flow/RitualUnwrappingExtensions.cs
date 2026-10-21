@@ -25,6 +25,18 @@ namespace ManaFox.Extensions.Flow
             => ritual.IsTorn ? await fallback(ritual.GetTear()!) : ritual.GetValue()!;
 
         /// <summary>
+        /// Await a ritual task, then extract the flowing value or return <paramref name="fallback"/> if the ritual is torn.
+        /// </summary>
+        public static async Task<T> OrElseAsync<T>(this Task<Ritual<T>> ritualTask, T fallback)
+            => (await ritualTask).OrElse(fallback);
+
+        /// <summary>
+        /// Await a ritual task, then extract the flowing value or compute a fallback from the tear.
+        /// </summary>
+        public static async Task<T> OrElseAsync<T>(this Task<Ritual<T>> ritualTask, Func<Tear, T> fallback)
+            => (await ritualTask).OrElse(fallback);
+
+        /// <summary>
         /// Await a ritual task, then extract the flowing value or asynchronously compute a fallback from the tear.
         /// </summary>
         public static async Task<T> OrElseAsync<T>(
@@ -39,6 +51,13 @@ namespace ManaFox.Extensions.Flow
             => ritual.Match(
                 onLeft: tear => throw new TearException($"{message}: {tear.Message}", tear),
                 onRight: v => v);
+
+        /// <summary>
+        /// Await a ritual task, then extract the flowing value or throw a <see cref="TearException"/> with
+        /// <paramref name="message"/> prepended to the tear's message if the ritual is torn.
+        /// </summary>
+        public static async Task<T> ExpectAsync<T>(this Task<Ritual<T>> ritualTask, string message)
+            => (await ritualTask).Expect(message);
 
         /// <summary>
         /// Extract the flowing value, or throw a <see cref="TearException"/> if the ritual is torn.

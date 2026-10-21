@@ -13,6 +13,8 @@
 
         public bool IsInternalTear { get; } = false;
 
+        public TearKind Kind { get; init; } = TearKind.Failure;
+
         public static Tear FromException(Exception ex, string? code = null)
             => new(ex.Message, code, ex);
 
@@ -21,6 +23,14 @@
 
         public override string ToString()
             => Code != null ? $"[{Code}] {Message}" : Message;
+    }
+    
+    public enum TearKind
+    {
+        Failure,
+        NotFound,
+        Unauthorized,
+        Forbidden
     }
 
     public sealed class TearException : Exception

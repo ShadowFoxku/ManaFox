@@ -26,6 +26,15 @@ namespace ManaFox.Extensions.Flow
                 : ritual;
 
         /// <summary>
+        /// Await a ritual task, then recover from a tear by supplying a fallback ritual derived from the tear.
+        /// If the ritual is flowing, <paramref name="recovery"/> is never invoked.
+        /// </summary>
+        public static async Task<Ritual<T>> RecoverAsync<T>(
+            this Task<Ritual<T>> ritualTask,
+            Func<Tear, Ritual<T>> recovery)
+            => (await ritualTask).Recover(recovery);
+
+        /// <summary>
         /// Await a ritual task, then recover from a tear asynchronously by supplying a fallback ritual.
         /// If the ritual is flowing, <paramref name="recovery"/> is never invoked.
         /// </summary>

@@ -45,21 +45,26 @@ namespace ManaFox.Hosting.Middleware.Controllers
 
             var failure = SigilBuilder.Failure()
                 .WithMessage(message)
-                .WithError("ritual", tear.Message)
+                .WithError("ritual", message)
                 .Build();
 
-            if (tear is HTTPTear httpTear)
-            {
-                return httpTear.StatusCode switch
-                {
-                    HttpStatusCode.Unauthorized => Unauthorized(),
-                    HttpStatusCode.Forbidden => StatusCode(StatusCodes.Status403Forbidden, failure),
-                    HttpStatusCode.NotFound => NotFound(failure),
-                    _ => BadRequest(failure)
-                };
-            }
+            var status = tear is HTTPTear httpTear ? httpTear.StatusCode : ToStatusCode(tear.Kind);
 
-            return BadRequest(failure);
+            return status switch
+            {
+                HttpStatusCode.Unauthorized => Unauthorized(),
+                HttpStatusCode.Forbidden => StatusCode(StatusCodes.Status403Forbidden, failure),
+                HttpStatusCode.NotFound => NotFound(failure),
+                _ => BadRequest(failure)
+            };
         }
+
+        private static HttpStatusCode ToStatusCode(TearKind kind) => kind switch
+        {
+            TearKind.NotFound => HttpStatusCode.NotFound,
+            TearKind.Unauthorized => HttpStatusCode.Unauthorized,
+            TearKind.Forbidden => HttpStatusCode.Forbidden,
+            _ => HttpStatusCode.BadRequest
+        };
     }
 }

@@ -48,22 +48,22 @@ namespace ManaFox.Databases.Core.Base
         #endregion Single
 
         #region  Single or Default
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new()
-            => Ritual<T>.TryAsync(() => _internal.QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, parameters));
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new()
+            => Ritual<T?>.TryAsync(() => _internal.QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, parameters));
         
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new()
             => QuerySingleOrDefaultAsync(commandText, commandType, RuneReaderBase.ReadSingleDefaultMapping<T>, parameters);
         
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new()
             => QuerySingleOrDefaultAsync(commandText, commandType, mapFunction, null);
 
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new()
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new()
             => QuerySingleOrDefaultAsync(commandText, commandType, RuneReaderBase.ReadSingleDefaultMapping<T>, null);
 
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new()
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new()
             => QuerySingleOrDefaultAsync(query.Build(), CommandType.Text, mapFunction, query.Parameters);
         
-        public Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query) where T : new()
+        public Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query) where T : new()
             => QuerySingleOrDefaultAsync<T>(query.Build(), CommandType.Text, query.Parameters);
         #endregion
 

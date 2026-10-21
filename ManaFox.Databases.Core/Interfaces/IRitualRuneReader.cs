@@ -24,12 +24,12 @@ namespace ManaFox.Databases.Core.Interfaces
         Task<Ritual<T>> QuerySingleAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new();
         Task<Ritual<T>> QuerySingleAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new();
 
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new();
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new();
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query) where T : new();
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new();
-        Task<Ritual<T>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, object? parameters) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction) where T : new();
+        Task<Ritual<T?>> QuerySingleOrDefaultAsync<T>(SearchQueryBuilder<T> query, Func<IRowReader, T> mapFunction) where T : new();
 
         Task CloseAsync();
     }

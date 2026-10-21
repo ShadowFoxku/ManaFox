@@ -62,10 +62,10 @@ namespace ManaFox.Databases.PostgreSQL
             if (await results.ReadAsync())
                 return mapFunction(results);
 
-            throw new TearException("The requested query did not return any results.", new Tear("No results were found for the given query", DBErrorCodes.QueryReturnedNoResults));
+            throw new TearException("The requested query did not return any results.", new Tear("No results were found for the given query", DBErrorCodes.QueryReturnedNoResults) { Kind = TearKind.NotFound });
         }
-
-        public override async Task<T> QuerySingleOrDefaultAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters)
+        
+        protected override async Task<T> QuerySingleOrDefaultInternalAsync<T>(string commandText, CommandType commandType, Func<IRowReader, T> mapFunction, object? parameters)
         {
             var com = CreateCommand(commandText, commandType, parameters);
 
@@ -73,9 +73,7 @@ namespace ManaFox.Databases.PostgreSQL
             if (await results.ReadAsync())
                 return mapFunction(results);
 
-#pragma warning disable CS8603
-            return default;
-#pragma warning restore CS8603
+            return default!;
         }
 
         public override async Task CloseAsync()
