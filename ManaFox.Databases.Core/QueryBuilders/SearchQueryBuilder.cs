@@ -72,10 +72,16 @@ public class SearchQueryBuilder<T>
 
     public SearchQueryBuilder<T> WhereContains(Expression<Func<T, object?>> col, string? rawTerm)
         => WhereAnyContains(rawTerm, Columns.Ref(col));
+    
+    public SearchQueryBuilder<T> WhereAnyContains(string? rawTerm, params Expression<Func<T, object?>>[] cols)
+        => WhereAnyContains(rawTerm, [.. cols.Select(Columns.Ref)]);
 
     public SearchQueryBuilder<T> WhereContains<TTable>(
         Expression<Func<TTable, object?>> col, string? rawTerm)
         => WhereAnyContains(rawTerm, Columns.Ref(col));
+    
+    public SearchQueryBuilder<T> WhereAnyContains<TTable>(string? rawTerm, params Expression<Func<TTable, object?>>[] cols)
+        => WhereAnyContains(rawTerm, [.. cols.Select(Columns.Ref)]);
     
     public SearchQueryBuilder<T> WhereAnyContains(string? rawTerm, params ColumnRef[] cols)
     {
@@ -186,7 +192,7 @@ public class SearchQueryBuilder<T>
 
         if (_params.TryGetValue(desiredName, out var existing))
         {
-            if (existing == value)
+            if (Equals(value, existing))
                 return desiredName;
 
             var baseName = desiredName;
