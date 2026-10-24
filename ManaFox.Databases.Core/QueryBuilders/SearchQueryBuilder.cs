@@ -103,6 +103,16 @@ public class SearchQueryBuilder<T>
         return this;
     }
     
+    public SearchQueryBuilder<T> WithAndCondition(string condition, params (string name, object? val)[] values)
+    {
+        _where.Add($"({condition})");
+
+        foreach (var v in values)
+            AddParam(v.val, v.name);
+        
+        return this;
+    }
+    
     public SearchQueryBuilder<T> WithOrderBy(Expression<Func<T, object?>> col, bool descending = false)
         => WithOrderBy<T>(col, descending);
 
