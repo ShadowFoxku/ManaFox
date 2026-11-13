@@ -6,8 +6,6 @@ namespace ManaFox.Databases.Core.QueryBuilders;
 
 public class SearchQueryBuilder<T>
 {
-    private const int MaxPageSize = 100;
-
     private readonly Dictionary<Type, string> _aliases = new();
     private readonly List<string> _where = new();
     private readonly Dictionary<string, object?> _params = new();
@@ -125,7 +123,7 @@ public class SearchQueryBuilder<T>
     public SearchQueryBuilder<T> WithPagination(int pageNumber, int pageSize)
     {
         pageNumber = Math.Max(pageNumber, 1);
-        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        pageSize = Math.Max(pageSize, 1);
 
         var offset = ((long)pageNumber - 1) * pageSize;
 
